@@ -1,0 +1,493 @@
+﻿C. Demografía y Población
+Migraciones
+Cambios de domicilio
+5.2.1. Cambios de domicilio entre Distritos
+;;2018;2019
+Ciudad de Madrid;Ciudad de Madrid;190.910;211.960
+Ciudad de Madrid;01. Centro;9.307;11.136
+Ciudad de Madrid;02. Arganzuela;7.515;8.503
+Ciudad de Madrid;03. Retiro;5.195;6.014
+Ciudad de Madrid;04. Salamanca;7.484;8.039
+Ciudad de Madrid;05. Chamartín;8.318;9.021
+Ciudad de Madrid;06. Tetuán;10.979;12.318
+Ciudad de Madrid;07. Chamberí;7.213;7.642
+Ciudad de Madrid;08. Fuencarral-El Pardo;13.043;14.420
+Ciudad de Madrid;09. Moncloa-Aravaca;6.231;6.871
+Ciudad de Madrid;10. Latina;12.333;13.603
+Ciudad de Madrid;11. Carabanchel;16.419;18.260
+Ciudad de Madrid;12. Usera;9.649;10.563
+Ciudad de Madrid;13. Puente de Vallecas;16.392;17.791
+Ciudad de Madrid;14. Moratalaz;4.152;4.758
+Ciudad de Madrid;15. Ciudad Lineal;12.251;13.718
+Ciudad de Madrid;16. Hortaleza;11.239;12.132
+Ciudad de Madrid;17. Villaverde;9.910;11.768
+Ciudad de Madrid;18. Villa de Vallecas;7.187;8.626
+Ciudad de Madrid;19. Vicálvaro;3.895;4.112
+Ciudad de Madrid;20. San Blas-Canillejas;8.986;9.739
+Ciudad de Madrid;21. Barajas;3.212;2.926
+01. Centro;Ciudad de Madrid;11.340;12.476
+01. Centro;01. Centro;4.141;4.831
+01. Centro;02. Arganzuela;1.044;1.149
+01. Centro;03. Retiro;332;418
+01. Centro;04. Salamanca;392;391
+01. Centro;05. Chamartín;267;288
+01. Centro;06. Tetuán;448;470
+01. Centro;07. Chamberí;665;713
+01. Centro;08. Fuencarral-El Pardo;234;294
+01. Centro;09. Moncloa-Aravaca;402;381
+01. Centro;10. Latina;463;462
+01. Centro;11. Carabanchel;731;720
+01. Centro;12. Usera;333;380
+01. Centro;13. Puente de Vallecas;593;556
+01. Centro;14. Moratalaz;84;116
+01. Centro;15. Ciudad Lineal;325;365
+01. Centro;16. Hortaleza;161;161
+01. Centro;17. Villaverde;298;372
+01. Centro;18. Villa de Vallecas;178;162
+01. Centro;19. Vicálvaro;41;67
+01. Centro;20. San Blas-Canillejas;163;128
+01. Centro;21. Barajas;45;52
+02. Arganzuela;Ciudad de Madrid;8.348;9.167
+02. Arganzuela;01. Centro;591;732
+02. Arganzuela;02. Arganzuela;3.039;3.414
+02. Arganzuela;03. Retiro;293;293
+02. Arganzuela;04. Salamanca;165;142
+02. Arganzuela;05. Chamartín;141;107
+02. Arganzuela;06. Tetuán;216;274
+02. Arganzuela;07. Chamberí;180;214
+02. Arganzuela;08. Fuencarral-El Pardo;166;193
+02. Arganzuela;09. Moncloa-Aravaca;182;188
+02. Arganzuela;10. Latina;370;431
+02. Arganzuela;11. Carabanchel;687;747
+02. Arganzuela;12. Usera;661;677
+02. Arganzuela;13. Puente de Vallecas;399;403
+02. Arganzuela;14. Moratalaz;84;107
+02. Arganzuela;15. Ciudad Lineal;253;239
+02. Arganzuela;16. Hortaleza;149;180
+02. Arganzuela;17. Villaverde;364;417
+02. Arganzuela;18. Villa de Vallecas;156;180
+02. Arganzuela;19. Vicálvaro;51;46
+02. Arganzuela;20. San Blas-Canillejas;158;134
+02. Arganzuela;21. Barajas;43;49
+03. Retiro;Ciudad de Madrid;5.890;6.630
+03. Retiro;01. Centro;272;313
+03. Retiro;02. Arganzuela;308;355
+03. Retiro;03. Retiro;2.172;2.560
+03. Retiro;04. Salamanca;415;447
+03. Retiro;05. Chamartín;217;199
+03. Retiro;06. Tetuán;146;156
+03. Retiro;07. Chamberí;163;162
+03. Retiro;08. Fuencarral-El Pardo;150;198
+03. Retiro;09. Moncloa-Aravaca;120;117
+03. Retiro;10. Latina;104;138
+03. Retiro;11. Carabanchel;172;156
+03. Retiro;12. Usera;116;111
+03. Retiro;13. Puente de Vallecas;425;409
+03. Retiro;14. Moratalaz;261;265
+03. Retiro;15. Ciudad Lineal;211;282
+03. Retiro;16. Hortaleza;172;210
+03. Retiro;17. Villaverde;78;86
+03. Retiro;18. Villa de Vallecas;182;242
+03. Retiro;19. Vicálvaro;73;69
+03. Retiro;20. San Blas-Canillejas;101;128
+03. Retiro;21. Barajas;32;27
+04. Salamanca;Ciudad de Madrid;9.266;10.113
+04. Salamanca;01. Centro;400;540
+04. Salamanca;02. Arganzuela;225;233
+04. Salamanca;03. Retiro;460;621
+04. Salamanca;04. Salamanca;3.495;3.690
+04. Salamanca;05. Chamartín;773;906
+04. Salamanca;06. Tetuán;306;320
+04. Salamanca;07. Chamberí;494;563
+04. Salamanca;08. Fuencarral-El Pardo;344;382
+04. Salamanca;09. Moncloa-Aravaca;277;280
+04. Salamanca;10. Latina;152;133
+04. Salamanca;11. Carabanchel;138;189
+04. Salamanca;12. Usera;90;107
+04. Salamanca;13. Puente de Vallecas;202;230
+04. Salamanca;14. Moratalaz;157;141
+04. Salamanca;15. Ciudad Lineal;821;851
+04. Salamanca;16. Hortaleza;356;326
+04. Salamanca;17. Villaverde;80;109
+04. Salamanca;18. Villa de Vallecas;116;117
+04. Salamanca;19. Vicálvaro;79;78
+04. Salamanca;20. San Blas-Canillejas;235;241
+04. Salamanca;21. Barajas;66;56
+05. Chamartín;Ciudad de Madrid;8.924;9.958
+05. Chamartín;01. Centro;236;302
+05. Chamartín;02. Arganzuela;115;182
+05. Chamartín;03. Retiro;164;163
+05. Chamartín;04. Salamanca;547;561
+05. Chamartín;05. Chamartín;3.767;4.127
+05. Chamartín;06. Tetuán;522;608
+05. Chamartín;07. Chamberí;343;374
+05. Chamartín;08. Fuencarral-El Pardo;647;718
+05. Chamartín;09. Moncloa-Aravaca;237;278
+05. Chamartín;10. Latina;125;141
+05. Chamartín;11. Carabanchel;140;158
+05. Chamartín;12. Usera;79;101
+05. Chamartín;13. Puente de Vallecas;144;130
+05. Chamartín;14. Moratalaz;64;74
+05. Chamartín;15. Ciudad Lineal;664;709
+05. Chamartín;16. Hortaleza;722;793
+05. Chamartín;17. Villaverde;46;79
+05. Chamartín;18. Villa de Vallecas;59;106
+05. Chamartín;19. Vicálvaro;45;59
+05. Chamartín;20. San Blas-Canillejas;185;207
+05. Chamartín;21. Barajas;73;88
+06. Tetuán;Ciudad de Madrid;12.031;13.499
+06. Tetuán;01. Centro;310;385
+06. Tetuán;02. Arganzuela;229;233
+06. Tetuán;03. Retiro;138;153
+06. Tetuán;04. Salamanca;228;270
+06. Tetuán;05. Chamartín;492;567
+06. Tetuán;06. Tetuán;5.279;5.794
+06. Tetuán;07. Chamberí;425;512
+06. Tetuán;08. Fuencarral-El Pardo;1.013;1.130
+06. Tetuán;09. Moncloa-Aravaca;586;714
+06. Tetuán;10. Latina;370;467
+06. Tetuán;11. Carabanchel;428;412
+06. Tetuán;12. Usera;225;290
+06. Tetuán;13. Puente de Vallecas;471;492
+06. Tetuán;14. Moratalaz;107;111
+06. Tetuán;15. Ciudad Lineal;444;473
+06. Tetuán;16. Hortaleza;496;566
+06. Tetuán;17. Villaverde;235;319
+06. Tetuán;18. Villa de Vallecas;180;203
+06. Tetuán;19. Vicálvaro;87;78
+06. Tetuán;20. San Blas-Canillejas;220;277
+06. Tetuán;21. Barajas;68;53
+07. Chamberí;Ciudad de Madrid;9.005;9.800
+07. Chamberí;01. Centro;652;820
+07. Chamberí;02. Arganzuela;311;294
+07. Chamberí;03. Retiro;217;249
+07. Chamberí;04. Salamanca;475;544
+07. Chamberí;05. Chamartín;580;560
+07. Chamberí;06. Tetuán;773;841
+07. Chamberí;07. Chamberí;3.242;3.376
+07. Chamberí;08. Fuencarral-El Pardo;433;514
+07. Chamberí;09. Moncloa-Aravaca;550;621
+07. Chamberí;10. Latina;227;291
+07. Chamberí;11. Carabanchel;232;267
+07. Chamberí;12. Usera;145;104
+07. Chamberí;13. Puente de Vallecas;190;239
+07. Chamberí;14. Moratalaz;86;53
+07. Chamberí;15. Ciudad Lineal;283;351
+07. Chamberí;16. Hortaleza;250;269
+07. Chamberí;17. Villaverde;78;125
+07. Chamberí;18. Villa de Vallecas;70;79
+07. Chamberí;19. Vicálvaro;35;23
+07. Chamberí;20. San Blas-Canillejas;133;145
+07. Chamberí;21. Barajas;43;35
+08. Fuencarral-El Pardo;Ciudad de Madrid;12.125;13.545
+08. Fuencarral-El Pardo;01. Centro;225;293
+08. Fuencarral-El Pardo;02. Arganzuela;118;130
+08. Fuencarral-El Pardo;03. Retiro;108;101
+08. Fuencarral-El Pardo;04. Salamanca;199;208
+08. Fuencarral-El Pardo;05. Chamartín;377;420
+08. Fuencarral-El Pardo;06. Tetuán;592;719
+08. Fuencarral-El Pardo;07. Chamberí;204;221
+08. Fuencarral-El Pardo;08. Fuencarral-El Pardo;7.069;7.860
+08. Fuencarral-El Pardo;09. Moncloa-Aravaca;434;499
+08. Fuencarral-El Pardo;10. Latina;207;234
+08. Fuencarral-El Pardo;11. Carabanchel;263;286
+08. Fuencarral-El Pardo;12. Usera;136;188
+08. Fuencarral-El Pardo;13. Puente de Vallecas;227;251
+08. Fuencarral-El Pardo;14. Moratalaz;85;80
+08. Fuencarral-El Pardo;15. Ciudad Lineal;307;321
+08. Fuencarral-El Pardo;16. Hortaleza;900;1.035
+08. Fuencarral-El Pardo;17. Villaverde;116;168
+08. Fuencarral-El Pardo;18. Villa de Vallecas;160;161
+08. Fuencarral-El Pardo;19. Vicálvaro;74;81
+08. Fuencarral-El Pardo;20. San Blas-Canillejas;193;206
+08. Fuencarral-El Pardo;21. Barajas;131;83
+09. Moncloa-Aravaca;Ciudad de Madrid;6.085;6.720
+09. Moncloa-Aravaca;01. Centro;357;389
+09. Moncloa-Aravaca;02. Arganzuela;156;201
+09. Moncloa-Aravaca;03. Retiro;97;121
+09. Moncloa-Aravaca;04. Salamanca;170;213
+09. Moncloa-Aravaca;05. Chamartín;213;238
+09. Moncloa-Aravaca;06. Tetuán;420;563
+09. Moncloa-Aravaca;07. Chamberí;389;369
+09. Moncloa-Aravaca;08. Fuencarral-El Pardo;557;578
+09. Moncloa-Aravaca;09. Moncloa-Aravaca;2.486;2.610
+09. Moncloa-Aravaca;10. Latina;235;319
+09. Moncloa-Aravaca;11. Carabanchel;204;219
+09. Moncloa-Aravaca;12. Usera;104;119
+09. Moncloa-Aravaca;13. Puente de Vallecas;126;143
+09. Moncloa-Aravaca;14. Moratalaz;43;36
+09. Moncloa-Aravaca;15. Ciudad Lineal;123;173
+09. Moncloa-Aravaca;16. Hortaleza;138;137
+09. Moncloa-Aravaca;17. Villaverde;70;74
+09. Moncloa-Aravaca;18. Villa de Vallecas;65;78
+09. Moncloa-Aravaca;19. Vicálvaro;24;28
+09. Moncloa-Aravaca;20. San Blas-Canillejas;82;90
+09. Moncloa-Aravaca;21. Barajas;26;22
+10. Latina;Ciudad de Madrid;12.102;13.401
+10. Latina;01. Centro;285;390
+10. Latina;02. Arganzuela;297;343
+10. Latina;03. Retiro;90;96
+10. Latina;04. Salamanca;114;132
+10. Latina;05. Chamartín;97;93
+10. Latina;06. Tetuán;241;304
+10. Latina;07. Chamberí;151;126
+10. Latina;08. Fuencarral-El Pardo;240;250
+10. Latina;09. Moncloa-Aravaca;183;232
+10. Latina;10. Latina;6.409;6.902
+10. Latina;11. Carabanchel;1.789;1.960
+10. Latina;12. Usera;413;502
+10. Latina;13. Puente de Vallecas;432;527
+10. Latina;14. Moratalaz;91;111
+10. Latina;15. Ciudad Lineal;261;313
+10. Latina;16. Hortaleza;130;169
+10. Latina;17. Villaverde;403;474
+10. Latina;18. Villa de Vallecas;193;190
+10. Latina;19. Vicálvaro;60;76
+10. Latina;20. San Blas-Canillejas;179;186
+10. Latina;21. Barajas;44;25
+11. Carabanchel;Ciudad de Madrid;15.676;17.743
+11. Carabanchel;01. Centro;418;470
+11. Carabanchel;02. Arganzuela;437;482
+11. Carabanchel;03. Retiro;113;126
+11. Carabanchel;04. Salamanca;128;194
+11. Carabanchel;05. Chamartín;94;125
+11. Carabanchel;06. Tetuán;312;306
+11. Carabanchel;07. Chamberí;124;137
+11. Carabanchel;08. Fuencarral-El Pardo;276;230
+11. Carabanchel;09. Moncloa-Aravaca;164;231
+11. Carabanchel;10. Latina;1.683;1.828
+11. Carabanchel;11. Carabanchel;8.202;9.015
+11. Carabanchel;12. Usera;1.040;1.248
+11. Carabanchel;13. Puente de Vallecas;684;851
+11. Carabanchel;14. Moratalaz;138;183
+11. Carabanchel;15. Ciudad Lineal;343;426
+11. Carabanchel;16. Hortaleza;172;227
+11. Carabanchel;17. Villaverde;700;813
+11. Carabanchel;18. Villa de Vallecas;268;313
+11. Carabanchel;19. Vicálvaro;79;148
+11. Carabanchel;20. San Blas-Canillejas;250;325
+11. Carabanchel;21. Barajas;51;65
+12. Usera;Ciudad de Madrid;9.299;10.403
+12. Usera;01. Centro;222;231
+12. Usera;02. Arganzuela;322;359
+12. Usera;03. Retiro;73;103
+12. Usera;04. Salamanca;74;95
+12. Usera;05. Chamartín;67;72
+12. Usera;06. Tetuán;184;200
+12. Usera;07. Chamberí;84;92
+12. Usera;08. Fuencarral-El Pardo;100;127
+12. Usera;09. Moncloa-Aravaca;70;79
+12. Usera;10. Latina;372;477
+12. Usera;11. Carabanchel;1.065;1.267
+12. Usera;12. Usera;4.615;4.863
+12. Usera;13. Puente de Vallecas;470;530
+12. Usera;14. Moratalaz;78;106
+12. Usera;15. Ciudad Lineal;194;257
+12. Usera;16. Hortaleza;94;120
+12. Usera;17. Villaverde;833;953
+12. Usera;18. Villa de Vallecas;131;199
+12. Usera;19. Vicálvaro;80;59
+12. Usera;20. San Blas-Canillejas;145;192
+12. Usera;21. Barajas;26;22
+13. Puente de Vallecas;Ciudad de Madrid;15.545;17.496
+13. Puente de Vallecas;01. Centro;269;325
+13. Puente de Vallecas;02. Arganzuela;217;305
+13. Puente de Vallecas;03. Retiro;277;309
+13. Puente de Vallecas;04. Salamanca;104;132
+13. Puente de Vallecas;05. Chamartín;103;105
+13. Puente de Vallecas;06. Tetuán;332;407
+13. Puente de Vallecas;07. Chamberí;105;135
+13. Puente de Vallecas;08. Fuencarral-El Pardo;205;257
+13. Puente de Vallecas;09. Moncloa-Aravaca;88;130
+13. Puente de Vallecas;10. Latina;423;520
+13. Puente de Vallecas;11. Carabanchel;649;836
+13. Puente de Vallecas;12. Usera;391;480
+13. Puente de Vallecas;13. Puente de Vallecas;9.186;9.863
+13. Puente de Vallecas;14. Moratalaz;367;362
+13. Puente de Vallecas;15. Ciudad Lineal;349;378
+13. Puente de Vallecas;16. Hortaleza;194;200
+13. Puente de Vallecas;17. Villaverde;537;683
+13. Puente de Vallecas;18. Villa de Vallecas;1.160;1.403
+13. Puente de Vallecas;19. Vicálvaro;246;258
+13. Puente de Vallecas;20. San Blas-Canillejas;297;365
+13. Puente de Vallecas;21. Barajas;46;43
+14. Moratalaz;Ciudad de Madrid;4.178;4.652
+14. Moratalaz;01. Centro;69;93
+14. Moratalaz;02. Arganzuela;74;76
+14. Moratalaz;03. Retiro;163;169
+14. Moratalaz;04. Salamanca;67;73
+14. Moratalaz;05. Chamartín;65;48
+14. Moratalaz;06. Tetuán;82;84
+14. Moratalaz;07. Chamberí;45;49
+14. Moratalaz;08. Fuencarral-El Pardo;96;117
+14. Moratalaz;09. Moncloa-Aravaca;39;34
+14. Moratalaz;10. Latina;87;108
+14. Moratalaz;11. Carabanchel;142;156
+14. Moratalaz;12. Usera;75;94
+14. Moratalaz;13. Puente de Vallecas;412;412
+14. Moratalaz;14. Moratalaz;1.766;2.069
+14. Moratalaz;15. Ciudad Lineal;156;178
+14. Moratalaz;16. Hortaleza;95;85
+14. Moratalaz;17. Villaverde;100;103
+14. Moratalaz;18. Villa de Vallecas;219;267
+14. Moratalaz;19. Vicálvaro;228;246
+14. Moratalaz;20. San Blas-Canillejas;169;165
+14. Moratalaz;21. Barajas;29;26
+15. Ciudad Lineal;Ciudad de Madrid;13.155;14.196
+15. Ciudad Lineal;01. Centro;262;326
+15. Ciudad Lineal;02. Arganzuela;151;225
+15. Ciudad Lineal;03. Retiro;135;150
+15. Ciudad Lineal;04. Salamanca;390;390
+15. Ciudad Lineal;05. Chamartín;430;451
+15. Ciudad Lineal;06. Tetuán;344;376
+15. Ciudad Lineal;07. Chamberí;201;207
+15. Ciudad Lineal;08. Fuencarral-El Pardo;431;417
+15. Ciudad Lineal;09. Moncloa-Aravaca;133;145
+15. Ciudad Lineal;10. Latina;274;314
+15. Ciudad Lineal;11. Carabanchel;483;460
+15. Ciudad Lineal;12. Usera;248;275
+15. Ciudad Lineal;13. Puente de Vallecas;550;560
+15. Ciudad Lineal;14. Moratalaz;207;310
+15. Ciudad Lineal;15. Ciudad Lineal;5.654;6.144
+15. Ciudad Lineal;16. Hortaleza;831;876
+15. Ciudad Lineal;17. Villaverde;266;299
+15. Ciudad Lineal;18. Villa de Vallecas;219;249
+15. Ciudad Lineal;19. Vicálvaro;227;233
+15. Ciudad Lineal;20. San Blas-Canillejas;1.524;1.640
+15. Ciudad Lineal;21. Barajas;195;149
+16. Hortaleza;Ciudad de Madrid;9.601;10.269
+16. Hortaleza;01. Centro;146;158
+16. Hortaleza;02. Arganzuela;88;104
+16. Hortaleza;03. Retiro;97;77
+16. Hortaleza;04. Salamanca;190;228
+16. Hortaleza;05. Chamartín;363;388
+16. Hortaleza;06. Tetuán;273;312
+16. Hortaleza;07. Chamberí;151;164
+16. Hortaleza;08. Fuencarral-El Pardo;639;595
+16. Hortaleza;09. Moncloa-Aravaca;100;105
+16. Hortaleza;10. Latina;124;156
+16. Hortaleza;11. Carabanchel;138;199
+16. Hortaleza;12. Usera;94;104
+16. Hortaleza;13. Puente de Vallecas;190;242
+16. Hortaleza;14. Moratalaz;60;76
+16. Hortaleza;15. Ciudad Lineal;515;562
+16. Hortaleza;16. Hortaleza;5.462;5.826
+16. Hortaleza;17. Villaverde;95;86
+16. Hortaleza;18. Villa de Vallecas;133;168
+16. Hortaleza;19. Vicálvaro;98;133
+16. Hortaleza;20. San Blas-Canillejas;355;331
+16. Hortaleza;21. Barajas;290;255
+17. Villaverde;Ciudad de Madrid;8.324;9.758
+17. Villaverde;01. Centro;141;177
+17. Villaverde;02. Arganzuela;163;168
+17. Villaverde;03. Retiro;54;41
+17. Villaverde;04. Salamanca;51;69
+17. Villaverde;05. Chamartín;53;58
+17. Villaverde;06. Tetuán;161;180
+17. Villaverde;07. Chamberí;44;62
+17. Villaverde;08. Fuencarral-El Pardo;90;144
+17. Villaverde;09. Moncloa-Aravaca;51;50
+17. Villaverde;10. Latina;306;298
+17. Villaverde;11. Carabanchel;472;517
+17. Villaverde;12. Usera;530;569
+17. Villaverde;13. Puente de Vallecas;406;518
+17. Villaverde;14. Moratalaz;44;75
+17. Villaverde;15. Ciudad Lineal;143;176
+17. Villaverde;16. Hortaleza;88;108
+17. Villaverde;17. Villaverde;5.150;6.117
+17. Villaverde;18. Villa de Vallecas;148;190
+17. Villaverde;19. Vicálvaro;87;92
+17. Villaverde;20. San Blas-Canillejas;132;137
+17. Villaverde;21. Barajas;10;12
+18. Villa de Vallecas;Ciudad de Madrid;5.965;6.791
+18. Villa de Vallecas;01. Centro;100;101
+18. Villa de Vallecas;02. Arganzuela;61;77
+18. Villa de Vallecas;03. Retiro;102;115
+18. Villa de Vallecas;04. Salamanca;75;69
+18. Villa de Vallecas;05. Chamartín;46;51
+18. Villa de Vallecas;06. Tetuán;101;116
+18. Villa de Vallecas;07. Chamberí;53;54
+18. Villa de Vallecas;08. Fuencarral-El Pardo;114;106
+18. Villa de Vallecas;09. Moncloa-Aravaca;35;28
+18. Villa de Vallecas;10. Latina;136;121
+18. Villa de Vallecas;11. Carabanchel;176;248
+18. Villa de Vallecas;12. Usera;118;134
+18. Villa de Vallecas;13. Puente de Vallecas;770;815
+18. Villa de Vallecas;14. Moratalaz;115;126
+18. Villa de Vallecas;15. Ciudad Lineal;126;142
+18. Villa de Vallecas;16. Hortaleza;125;121
+18. Villa de Vallecas;17. Villaverde;193;206
+18. Villa de Vallecas;18. Villa de Vallecas;3.228;3.843
+18. Villa de Vallecas;19. Vicálvaro;127;139
+18. Villa de Vallecas;20. San Blas-Canillejas;117;151
+18. Villa de Vallecas;21. Barajas;47;28
+19. Vicálvaro;Ciudad de Madrid;3.168;3.430
+19. Vicálvaro;01. Centro;65;61
+19. Vicálvaro;02. Arganzuela;33;50
+19. Vicálvaro;03. Retiro;39;48
+19. Vicálvaro;04. Salamanca;31;31
+19. Vicálvaro;05. Chamartín;37;28
+19. Vicálvaro;06. Tetuán;42;56
+19. Vicálvaro;07. Chamberí;17;20
+19. Vicálvaro;08. Fuencarral-El Pardo;48;53
+19. Vicálvaro;09. Moncloa-Aravaca;12;20
+19. Vicálvaro;10. Latina;65;66
+19. Vicálvaro;11. Carabanchel;65;117
+19. Vicálvaro;12. Usera;44;80
+19. Vicálvaro;13. Puente de Vallecas;167;197
+19. Vicálvaro;14. Moratalaz;161;156
+19. Vicálvaro;15. Ciudad Lineal;80;122
+19. Vicálvaro;16. Hortaleza;69;99
+19. Vicálvaro;17. Villaverde;82;71
+19. Vicálvaro;18. Villa de Vallecas;134;183
+19. Vicálvaro;19. Vicálvaro;1.820;1.807
+19. Vicálvaro;20. San Blas-Canillejas;123;150
+19. Vicálvaro;21. Barajas;34;15
+20. San Blas-Canillejas;Ciudad de Madrid;5;9.345
+20. San Blas-Canillejas;01. Centro;1;147
+20. San Blas-Canillejas;02. Arganzuela;0;91
+20. San Blas-Canillejas;03. Retiro;0;85
+20. San Blas-Canillejas;04. Salamanca;0;119
+20. San Blas-Canillejas;05. Chamartín;0;149
+20. San Blas-Canillejas;06. Tetuán;1;189
+20. San Blas-Canillejas;07. Chamberí;0;67
+20. San Blas-Canillejas;08. Fuencarral-El Pardo;0;185
+20. San Blas-Canillejas;09. Moncloa-Aravaca;0;94
+20. San Blas-Canillejas;10. Latina;0;171
+20. San Blas-Canillejas;11. Carabanchel;0;286
+20. San Blas-Canillejas;12. Usera;0;124
+20. San Blas-Canillejas;13. Puente de Vallecas;1;379
+20. San Blas-Canillejas;14. Moratalaz;1;189
+20. San Blas-Canillejas;15. Ciudad Lineal;0;1.157
+20. San Blas-Canillejas;16. Hortaleza;0;432
+20. San Blas-Canillejas;17. Villaverde;0;190
+20. San Blas-Canillejas;18. Villa de Vallecas;0;263
+20. San Blas-Canillejas;19. Vicálvaro;1;374
+20. San Blas-Canillejas;20. San Blas-Canillejas;0;4.374
+20. San Blas-Canillejas;21. Barajas;0;280
+21. Barajas;Ciudad de Madrid;503;2.568
+21. Barajas;01. Centro;16;52
+21. Barajas;02. Arganzuela;3;32
+21. Barajas;03. Retiro;5;16
+21. Barajas;04. Salamanca;16;41
+21. Barajas;05. Chamartín;9;41
+21. Barajas;06. Tetuán;11;43
+21. Barajas;07. Chamberí;15;25
+21. Barajas;08. Fuencarral-El Pardo;2;72
+21. Barajas;09. Moncloa-Aravaca;2;35
+21. Barajas;10. Latina;4;26
+21. Barajas;11. Carabanchel;11;45
+21. Barajas;12. Usera;2;13
+21. Barajas;13. Puente de Vallecas;8;44
+21. Barajas;14. Moratalaz;8;12
+21. Barajas;15. Ciudad Lineal;94;99
+21. Barajas;16. Hortaleza;58;192
+21. Barajas;17. Villaverde;3;24
+21. Barajas;18. Villa de Vallecas;11;30
+21. Barajas;19. Vicálvaro;0;18
+21. Barajas;20. San Blas-Canillejas;191;167
+21. Barajas;21. Barajas;34;1.541
+;
+;
+Fuente: Ayuntamiento de Madrid. Subdirección General de Estadística. Padrón Municipal de Habitantes
+Observaciones: El año 1997 recoge los datos desde el 01.05.1996 al 31.12.1997
