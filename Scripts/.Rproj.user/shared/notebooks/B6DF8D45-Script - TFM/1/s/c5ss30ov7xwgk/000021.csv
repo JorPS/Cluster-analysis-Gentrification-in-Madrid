@@ -1,0 +1,10 @@
+"0","df_paro <- read.csv(""../Datasets - TFM/Raw datasets/Ayto de Madrid - Tasa de paro por distrito, barrio, edad y genero2.csv"", skip = 10, header = F, sep = "";"") %>% select(2, 3, 4, 5, 6, 8, 13) %>% rename(
+  V2 = ""Sección"", V3 = ""Total"", V4 = ""16 - 24 años"", V5 = ""25 - 44 años"", V6 = ""45 - 64 años"", V8 = ""Paro hombres"", V13 = ""Paro mujeres"")
+"
+"1","[1m[33mError[39m in `rename()`:[22m
+[33m![39m Can't rename columns that don't exist.
+[31m✖[39m Column `Sección` doesn't exist.
+Backtrace:
+[90m 1. [39m... %>% ...
+[90m 3. [39m[1m[94mdplyr:::rename.data.frame([39m[22m...[1m[94m)[39m[22m
+"
