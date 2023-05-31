@@ -26,6 +26,9 @@ library(corrplot)
 library(sf)	
 library(leaflet)
 library(colorBlindness)
+library(devtools)
+install_github("wch/webshot")
+library(webshot)
 ```
 
 ## Data harvesting: creation of the dataset 
@@ -168,20 +171,6 @@ df_paro <- df_foreign %>% select(-contains("prop"), -Area, -Neighborhood_code) %
 df_paro[is.na(df_paro)] <- 0
 
 write.csv(df_paro, "../Datasets - TFM/Cleaned datasets/Unemployment_Madrid_per_neighborhood_2018-19", row.names = F)  
-```
-
-#### Read descriptive data about neighborhoods from Iguala at 2020 - 2021. 
-
-This dataset contains information per district about sociodemographic variables by neighborhood and district in Madrid in 2020 and 2021. This data allow us to approximate the social class without the unemployment rate, using the mean household income. Also allow us to see the immigration and voter turnout rates. Also, we can calculate the growth of each of the variables from one year to the next one.
-
-```{r}
-df_iguala <- read_csv2("../Datasets - TFM/Raw datasets/Barrios_Madrid_descriptive_data1 - Iguala_2020-2021.csv") %>% 
-  select(# remove undesired variables
-  -`Valor catastral medio (vivienda residencial)`, 
-  -`Porcentaje de mujeres`, 
-  -`Porcentaje de población menos de 14 años y mayor de 65 años`
-  )
-# Reliable? I need to search how is this data obtained.
 ```
 
 ### *Housing prizes data*
@@ -519,6 +508,34 @@ hist(df_19$population_incr_last_4_years, col="darkolivegreen2", main = "Incremen
 hist(df_19$foreign_incr_last_4_years, col="green4", main = "Increment of the foreign population distribution in the neighborhoods in Madrid, 2019")
 ```
 
+```{r}
+# Save plots
+plotDir <- "../Plots/Scale Barplots" # Set the directory path
+
+# Function to save a histogram plot
+saveHistogramPlot <- function(data, col, main, filename) {
+  # Generate the histogram plot
+  hist(data, col = col, main = main)
+  # Specify the file path for saving the plot
+  plotFilePath <- file.path(plotDir, filename)
+  # Save the plot to the specified file path
+  dev.copy(png, filename = plotFilePath)
+  dev.off()
+}
+
+# Save each of the plots
+saveHistogramPlot(df_19$house_price_2019, "cadetblue2", "Real estate prices distribution in Madrid, 2019", "plot1.png")
+saveHistogramPlot(df_19$n_airbnbs, "darkgoldenrod1", "Number of Airbnbs distribution through the neighborhoods in Madrid, 2019", "plot2.png")
+saveHistogramPlot(df_19$n_airbnbs[df_19$n_airbnbs > 100], "darkgoldenrod3", "Number of Airbnbs distribution through the neighborhoods in Madrid (>100), 2019", "plot3.png")
+saveHistogramPlot(df_19$n_airbnb_incr_last_4_years, "darkgoldenrod4", "Increment of the nº of Airbnbs distribution through the neighborhoods in Madrid, 2019", "plot4.png")
+saveHistogramPlot(df_19$n_airbnb_incr_last_4_years[df_19$n_airbnb_incr_last_4_years > 75], "darkgoldenrod3", "Increment of the nº of Airbnbs distribution through the neighborhoods in Madrid (>75), 2019", "plot5.png")
+saveHistogramPlot(df_19$mean_airbnb_price, "#FA937E", "Mean Airbnbs price distribution in Madrid, 2019", "plot6.png")
+saveHistogramPlot(df_19$airbnb_price_incr_last_4_years, "tomato3", "Increment of the price of Airbnbs distribution in Madrid, 2019", "plot7.png")
+saveHistogramPlot(df_19$population_incr_last_4_years, "darkolivegreen2", "Increment of the population distribution in the neighborhoods in Madrid, 2019", "plot8.png")
+saveHistogramPlot(df_19$foreign_incr_last_4_years, "green4", "Increment of the foreign population distribution in the neighborhoods in Madrid, 2019", "plot9.png")
+
+```
+
 #### Variable transformations
 
 ```{r}
@@ -536,9 +553,13 @@ df_19_scaled <- df_19 %>% mutate(
 #### Correlation
 
 ```{r}
-df_19_scaled %>% select(-Neighborhood) %>% 
+corr_matrix <- df_19_scaled %>% select(-Neighborhood) %>% 
   cor() %>% 
   corrplot()
+corr_matrix
+
+dev.copy(png, filename = "../Plots/Correlation matrix.png")
+dev.off()
 ```
 
 ### Clustering
@@ -553,9 +574,31 @@ df_19_num <- df_19_scaled %>% select(-Neighborhood)
 names_19 <- df_19 %>% select(Neighborhood)
 
 # Estimate the most efficient number of clusters for the data
-fviz_nbclust(scale(df_19_num), kmeans, method = 'wss', k.max = 20, nstart = 500)
-fviz_nbclust(scale(df_19_num), kmeans, method = 'silhouette', k.max = 20, nstart = 500)
-fviz_nbclust(scale(df_19_num), kmeans, method = 'gap_stat', k.max = 10, nstart = 100, nboot = 500) # as the other methods show a low ideal number of clusters that cannot describe the complex information in the dataset, I choose to use 9 clusters as it will be a large number of clusters that can explain the differences between neighborhoods across clusters, and it shows that more clusters are not going to add significant information
+set.seed(23)
+wss_k <- fviz_nbclust(df_19_num, kmeans, method = 'wss', k.max = 20, nstart = 500)
+silh_k <- fviz_nbclust(df_19_num, kmeans, method = 'silhouette', k.max = 20, nstart = 500)
+gap_k <- fviz_nbclust(df_19_num, kmeans, method = 'gap_stat', k.max = 10, nstart = 100, nboot = 500)
+
+# Save plots
+plotDir <- "../Plots/k_clusters_estimates"
+wss_plot <- ggplot_build(wss_k)$plot
+wss_plot_file <- file.path(plotDir, "wss_plot.png")
+ggsave(wss_plot_file, plot = wss_plot, device = "png")
+
+silh_plot <- ggplot_build(silh_k)$plot
+silh_plot_file <- file.path(plotDir, "silhouette_plot.png")
+ggsave(silh_plot_file, plot = silh_plot, device = "png")
+
+gap_plot <- ggplot_build(gap_k)$plot
+gap_plot_file <- file.path(plotDir, "gap_stat_plot.png")
+ggsave(gap_plot_file, plot = gap_plot, device = "png")
+
+# Plots 
+wss_plot
+silh_plot
+gap_plot 
+
+# as the other methods show a low ideal number of clusters that cannot describe the complex information in the dataset, I choose to use 9 clusters as it will be a large number of clusters that can explain the differences between neighborhoods across clusters, and it shows that more clusters are not going to add significant information
 ```
 
 
@@ -566,19 +609,21 @@ k = 6
 # fit the k-means model
 set.seed(23) # seed for reproducibility
 model_19 <- kmeans(df_19_num, centers=k, nstart = 10000 )  #nstart for nº of steps
-fit.km_19 <- eclust(df_19_num, "kmeans", stand = T, k = k, graph = T) # alternative method with plot
+
 # fit a hierarchical model
 set.seed(23)
 d <- dist(df_19_num, method = "euclidean") # eucledian clustering
 hc_model <- hclust (d, method = "ward.D2") # Ward's theory clustering
 hc_model$labels <- names_19$Neighborhood
-fviz_dend(x = hc_model,
+dend_plot <- fviz_dend(x = hc_model,
           k = k,
           color_labels_by_k = TRUE,
           cex = 0.8,
           type = "phylogenic",
           repel = TRUE)+  labs(title="Gentrification tree clustering of Madrid Neighborhood") + theme(axis.text.x=element_blank(),axis.text.y=element_blank())
-
+dend_plot_file <- file.path("../Plots", "Phylogenic_tree_hierarchical_clusters.png")
+ggsave(dend_plot_file, dend_plot, dpi = 300)
+dend_plot
 # store the results from k-means method in dataframes
 model_19
 df_clusters_19 <- data.frame(t(model_19$centers))
@@ -602,26 +647,33 @@ hmodel
 ```{r}
 # k-means method
 centers=model_19$centers
-par(mar=c(15,4,1,1))
-barplot(centers[1,], las=2, col="navajowhite3")
-barplot(centers[2,], las=2, col="navajowhite3")
-barplot(centers[3,], las=2, col="navajowhite3")
-barplot(centers[4,], las=2, col="navajowhite3")
-barplot(centers[5,], las=2, col="navajowhite3")
-barplot(centers[6,], las=2, col="navajowhite3")
-# barplot(centers[7,], las=2, col="navajowhite3")
-# barplot(centers[8,], las=2, col="navajowhite3")
-# barplot(centers[9,], las=2, col="navajowhite3")
+# Set the directory path where the plots should be saved
+plotDir <- "../Plots/kn Clusters barplots"
+
+# Set the margin size for the plot
+par(mar = c(15, 4, 1, 1))
+
+# Loop through the centers and generate and save the bar plots
+for (i in 1:6) {
+  # Generate the bar plot
+  barplot(centers[i,], las = 2, col = "navajowhite3")
+  # Save the plot as PNG
+  plot_file <- file.path(plotDir, paste0("kn_clusters_barplot(", i, ").png"))
+  dev.copy(png, filename = plot_file)
+  dev.off()
+}
 
 # hierarchical method
 hcenters=as.matrix(t(hmodel))
 par(mar=c(13,8,1,1))
-barplot(hcenters[1,], las=2, col="chocolate")
-barplot(hcenters[2,], las=2, col="chocolate")
-barplot(hcenters[3,], las=2, col="chocolate")
-barplot(hcenters[4,], las=2, col="chocolate")
-barplot(hcenters[5,], las=2, col="chocolate")
-barplot(hcenters[6,], las=2, col="chocolate")
+for (i in 1:6) {
+  # Generate the bar plot
+  barplot(hcenters[i,], las = 2, col = "chocolate")
+  # Save the plot as PNG
+  plot_file <- file.path(plotDir, paste0("hierarchical_clusters_barplot(", i, ").png"))
+  dev.copy(png, filename = plot_file)
+  dev.off()
+}
 
 
 ```
@@ -648,7 +700,7 @@ mapb <- mapb %>% mutate(DESBDT = str_squish(substring(DESBDT, 5))) %>%
   mutate(DESBDT = str_squish(str_replace_all(DESBDT, "Peña Grande$", "Peñagrande"))) 
 # join with neighborhoods' cluster data
 names(df_neighborhood_clusters)[1] <- "DESBDT"
-mapb_km <- mapb %>% left_join(df_neighborhood_clusters, by = "DESBDT") %>% drop_na()
+mapb_kn <- mapb %>% left_join(df_neighborhood_clusters, by = "DESBDT") %>% drop_na()
 
 ```
 
@@ -662,10 +714,22 @@ factpal <- colorFactor(c( # mostly, from ColorBlindness package
   "red", # 4
   "#24FF24", # 5
   "yellow" # 6
-  ), as.factor(mapb_km$Cluster))	# define color palette
+  ), as.factor(mapb_kn$Cluster))	# define color palette
 
-leaflet(mapb_km) %>% addTiles() %>% addPolygons(weight=3,opacity = 1 ,color = ~factpal(as.factor(mapb_km$Cluster))) %>% addLegend("bottomright", pal = factpal, values = as.factor(mapb_km$Cluster),
-                     title = "Cluster", labFormat = labelFormat())
+kn_map <- leaflet(mapb_kn) %>% 
+  addTiles() %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_kn$Cluster))) %>% 
+  addLegend("bottomright", 
+            pal = factpal, 
+            values = as.factor(mapb_kn$Cluster),
+            title = "Cluster", 
+            labFormat = labelFormat())
+kn_map
+
+# Save the map as an HTML file
+mapDir <- "../Plots/Interactive_maps"
+map_file <- file.path(mapDir, "Interactive_Madrid_Gentrification_knClusters_Map.html")
+saveWidget(kn_map, map_file , selfcontained = FALSE)
 
 
 ```
@@ -685,7 +749,20 @@ factpal <- colorFactor(c( # mostly, from ColorBlindness package
   "yellow" # 6
   ), as.factor(mapb_hc$Cluster))	# define color palette
 
-leaflet(mapb_hc) %>% addTiles() %>% addPolygons(weight=3,opacity = 2 ,color = ~factpal(as.factor(mapb_hc$Cluster))) %>% addLegend("bottomright", pal = factpal, values = as.factor(mapb_hc$Cluster),
-                     title = "Cluster", labFormat = labelFormat())
+# leaflet map 
+hc_map <- leaflet(mapb_hc) %>% 
+  addTiles() %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_hc$Cluster))) %>% 
+  addLegend("bottomright", 
+            pal = factpal, 
+            values = as.factor(mapb_hc$Cluster),
+            title = "Cluster", 
+            labFormat = labelFormat())
+hc_map
+
+# Save the map as an HTML file
+mapDir <- "../Plots/Interactive_maps"
+map_file <- file.path(mapDir, "Interactive_Madrid_Gentrification_Hierarchical_Clusters_Map.html")
+saveWidget(hc_map, map_file , selfcontained = FALSE)
 ```
 
