@@ -647,7 +647,7 @@ row.names(df_hclusters_19) <- NULL
 
 hmodel <- df_19_scaled %>% left_join(df_hclusters_19, by = "Neighborhood") %>% 
   group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
-hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame()
+hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
 names(hmodel) <- c("C1", "C2", "C3", "C4", "C5")
 hmodel
 ```
@@ -810,5 +810,25 @@ hc_map
 mapDir <- "../Plots/Interactive_maps"
 map_file <- file.path(mapDir, "Interactive_Madrid_Gentrification_Hierarchical_Clusters_Map.html")
 saveWidget(hc_map, map_file , selfcontained = FALSE)
+```
+
+# Clusters centers for the different variables
+
+```{r}
+names(df_hclusters_19)[1] <- "Neighborhood"
+df_19 <- df_19 %>% full_join(df_hclusters_19, by = "Neighborhood") %>% 
+  select(Cluster, everything())
+write.csv(df_19, file = "../Datasets - TFM/Cleaned datasets/Gentrification_Madrid_2019_dataset_result.csv")
+
+df_cluster_neigh_hc_descaled <- df_19 %>% group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
+df_cluster_neigh_hc_descaled <- df_cluster_neigh_hc_descaled %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
+names(df_cluster_neigh_hc_descaled) <- c("C1", "C2", "C3", "C4", "C5")
+df_cluster_neigh_hc_descaled
+
+# hmodel <- df_19_scaled %>% left_join(df_hclusters_19, by = "Neighborhood") %>% 
+#   group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
+# hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
+# names(hmodel) <- c("C1", "C2", "C3", "C4", "C5")
+# hmodel
 ```
 
