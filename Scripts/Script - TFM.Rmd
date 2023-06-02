@@ -27,8 +27,7 @@ library(sf)
 library(leaflet)
 library(colorBlindness)
 library(devtools)
-install_github("wch/webshot")
-library(webshot)
+library(htmlwidgets)
 ```
 
 ## Data harvesting: creation of the dataset 
@@ -608,7 +607,7 @@ k = 6
 
 # fit the k-means model
 set.seed(23) # seed for reproducibility
-model_19 <- kmeans(df_19_num, centers=k, nstart = 10000 )  #nstart for nº of steps
+model_19 <- kmeans(df_19_num, centers=k, nstart = 10000)  #nstart for nº of steps
 
 # fit a hierarchical model
 set.seed(23)
@@ -617,10 +616,21 @@ hc_model <- hclust (d, method = "ward.D2") # Ward's theory clustering
 hc_model$labels <- names_19$Neighborhood
 dend_plot <- fviz_dend(x = hc_model,
           k = k,
-          color_labels_by_k = TRUE,
+          color_labels_by_k = TRUE, 
+          k_colors = c( # mostly, from ColorBlindness package
+  "#006DDB", # 6
+  "#24FF24", # 4
+  "#000000", # 1
+  "#009292", # 2   
+  "yellow3", # 3
+  "red"      # 5
+  ),
           cex = 0.8,
           type = "phylogenic",
-          repel = TRUE)+  labs(title="Gentrification tree clustering of Madrid Neighborhood") + theme(axis.text.x=element_blank(),axis.text.y=element_blank())
+          repel = TRUE)+  labs(title="Gentrification tree clustering of Madrid Neighborhood") + theme(axis.text.x=element_blank(),axis.text.y=element_blank()) 
+
+
+
 dend_plot_file <- file.path("../Plots", "Phylogenic_tree_hierarchical_clusters.png")
 ggsave(dend_plot_file, dend_plot, dpi = 300)
 dend_plot
@@ -640,6 +650,42 @@ hmodel <- df_19_scaled %>% left_join(df_hclusters_19, by = "Neighborhood") %>%
 hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame()
 names(hmodel) <- c("C1", "C2", "C3", "C4", "C5")
 hmodel
+```
+
+### Clustering goodness
+
+```{r}
+print("K-means method")
+# K-means clustering
+set.seed(23)
+silhouette_km <- silhouette(model_19$cluster, dist(df_19_num))
+within_cluster_homogeneity_km <- numeric(k)
+
+for (i in 1:k) {
+  cluster_indices <- which(model_19$cluster == i)
+  within_cluster_homogeneity_km[i] <- mean(silhouette_km[,3][cluster_indices])
+}
+
+# Print within-cluster homogeneity for each cluster
+for (i in 1:k) {
+  cat("Cluster", i, "homogeneity:", within_cluster_homogeneity_km[i], "\n")
+}
+print("Hierarchical method")
+# Hierarchical clustering 
+set.seed(23)
+pamclu <- cluster::pam(t(d),k=5)
+silhouette_hc <- silhouette(pamclu)
+within_cluster_homogeneity_hc <- numeric(k)
+
+for (i in 1:k) {
+  cluster_indices <- which(model_19$cluster == i)
+  within_cluster_homogeneity_hc[i] <- mean(silhouette_hc[,3][cluster_indices])
+}
+
+# Print within-cluster homogeneity for each cluster
+for (i in 1:k) {
+  cat("Cluster", i, "homogeneity:", within_cluster_homogeneity_hc[i], "\n")
+}
 ```
 
 ### Visualization of the cluster centers
