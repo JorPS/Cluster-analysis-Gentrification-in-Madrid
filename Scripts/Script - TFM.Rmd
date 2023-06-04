@@ -832,3 +832,42 @@ df_cluster_neigh_hc_descaled
 # hmodel
 ```
 
+###### Different tables and plots for cluster analysis
+
+```{r}
+# Cluster 2 insights
+cl_2_insights <- df_19 %>% filter(Cluster == 2) %>% 
+  select(Neighborhood, house_price_2019, n_airbnbs, n_airbnb_incr_last_4_years, mean_airbnb_price, unem_prop_2019, Post_graduate, Compulsory_educ, Incomplete_elementary, aging_index_incr, house_price_incr_last_4_years) %>% arrange(Post_graduate) %>% head(15) %>% mutate_if(is.numeric, round, digits = 4)
+cl_2_insights
+write.csv(cl_2_insights, "../Datasets - TFM/Cleaned datasets/Cluster_2_vulnerable_neighborhoods.csv", row.names = F)
+```
+
+```{r}
+# Cluster 3 insights
+cl_3_insights <- df_19 %>% filter(Cluster == 3) %>% 
+  select(Neighborhood, house_price_2019, house_price_incr_last_4_years, n_airbnbs, Post_graduate, unem_prop_2019) 
+  cl_3_gentrified <- cl_3_insights[c(29, 31, 16, 28, 14, 15, 13, 34, 18), ] %>%  mutate_if(is.numeric, round, digits = 4)
+## relationship between Post Graduate and House Price
+cl3_postgrad_house_price_incr <- cl_3_insights %>%
+    ggplot(aes(x = Post_graduate, y = house_price_incr_last_4_years)) +
+    geom_line(color = "darkgoldenrod1", size = 1) +
+    geom_text(data = filter(cl_3_insights, house_price_incr_last_4_years > 0.45),
+              aes(label = Neighborhood), vjust = -1, color = "#4F4F4F") +
+    labs(x = "Post Graduate", y = "House Price Increase (Last 4 Years)",
+         title = "Relationship between Post Graduate and House Price Increase in Cluster 3") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(0, 10, 0, 0)) +
+    scale_x_continuous(limits = c(-0.001, max(cl_3_insights$Post_graduate)))
+  cl3_postgrad_house_price_incr
+  # save plot
+  ggsave("../Plots/Individual_cluster_analysis/Cluster_3_Post_graduates_Real_estate_price_increase.png", plot = cl3_postgrad_house_price_incr, width = 10, height = 8, dpi = 300)
+```
+
