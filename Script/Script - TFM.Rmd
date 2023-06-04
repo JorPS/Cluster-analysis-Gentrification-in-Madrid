@@ -1,0 +1,873 @@
+---
+title: "Script - TFM"
+author: "Jorge Pascual Segovia"
+date: "2023-06-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(lubridate)
+library(stringr)
+library(stringi)
+library(mice)
+library(cluster)
+library(mclust)
+library(ggplot2)
+library(factoextra)
+library(corrplot)
+library(sf)	
+library(leaflet)
+library(colorBlindness)
+library(devtools)
+library(htmlwidgets)
+```
+
+## Data harvesting: creation of the dataset 
+
+### *Foreigner population data*
+#### Read data of the foreigner population in Madrid per neighborhood from Ayto. de Madrid (2018-19). 
+<p>Source (2018-19): https://www-s.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0307010000012</p>
+<p>Source (2014-15): https://www-s.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0307010000011</p>
+
+```{r}
+  # 2018-19
+df_foreign <- read.csv("../Datasets - TFM/Raw datasets/Población extranjera en Madrid por barrio - Ayto de Madrid 2018-19.csv", sep = ";", skip = 6, header = F)
+# column names
+colnames(df_foreign) <- c("Area", "Neighborhood", "total_2018","prop_foreign_2018", "total_2019","prop_foreign_2019")
+# remove empty rows
+df_foreign <- subset(df_foreign, Neighborhood != "") 
+
+df_foreign <- df_foreign %>% 
+  # fix notation
+  mutate(total_2018 = as.numeric(gsub("\\.", "", total_2018)),
+         total_2019 = as.numeric(gsub("\\.", "", total_2019))) %>% 
+  # filter the neighborhoods
+  filter(stringr::str_detect(Neighborhood, "^\\d{3}")) %>% 
+  # remove the neighborhood code
+  mutate(Neighborhood_code = substring(Neighborhood, 1, 3),
+         Neighborhood = str_squish(substring(Neighborhood, 5)),
+         prop_foreign_2018 = as.numeric(gsub(",", ".", prop_foreign_2018)),
+         prop_foreign_2019 = as.numeric(gsub(",", ".", prop_foreign_2019)))  %>%
+  # create a neighborhood code column (for example, San Andrés neigh. had changed its name)
+  mutate(prop_foreign_2018 = prop_foreign_2018/100,
+         prop_foreign_2019 = prop_foreign_2019/100) 
+
+  # 2014-15
+df_foreign_1415 <- read.csv("../Datasets - TFM/Raw datasets/Población extranjera en Madrid por barrio 2014-15.csv", sep = ";", dec = ",",skip = 5, header = F, col.names = c("Date", "District", "Neighborhood", "total_popu", "n_foreign", "prop_foreign")) 
+
+# mean of Vallecas and Vicálvaro districts as they have new neighborhoods
+mean_prop_Vallecas <- df_foreign_1415 %>% filter(Neighborhood == "18. Villa de Vallecas") %>% select(prop_foreign) 
+Vallecas_2014_foreign <- mean_prop_Vallecas[1,1]
+Vallecas_2015_foreign <- mean_prop_Vallecas[2,1]
+
+mean_prop_Vicalvaro <- df_foreign_1415 %>% filter(Neighborhood == "19. Vicálvaro") %>% select(prop_foreign) 
+Vicalvaro_2014_foreign <- mean_prop_Vicalvaro[1,1]
+Vicalvaro_2015_foreign <- mean_prop_Vicalvaro[2,1]
+
+# data cleaning
+df_foreign_1415 <- df_foreign_1415 %>% 
+  # select desired columns
+  select(Date, Neighborhood, total_popu, prop_foreign) %>% 
+  # fix notation
+  mutate(total_popu = as.numeric(gsub("\\.", "", total_popu)),
+         prop_foreign = as.numeric(prop_foreign/100))  %>% 
+  # filter the neighborhoods
+   filter(stringr::str_detect(Neighborhood, "^\\d{3}"))  %>%
+  # create a neighborhood code column (for example, San Andrés neigh. had changed its name)
+  mutate(Neighborhood_code = substring(Neighborhood, 1, 3)) %>%  
+  # remove the neighborhood code
+  mutate(Neighborhood = substring(Neighborhood, 6),
+         Date = str_squish(substring(Date, 14)))
+  
+# 2015
+df_foreign_2015 <- df_foreign_1415 %>% filter(Date == "2015") %>% select(-Date)
+names(df_foreign_2015) <- c("Neighborhood", "total_2015", "prop_foreign_2015", "Neighborhood_code")
+
+# merge 2015 and 2019
+df_foreign <- df_foreign %>% left_join(df_foreign_2015, by = c("Neighborhood", "Neighborhood_code"))
+
+# fill empty values with the mean of the district, as they are new neighborhoods
+  # Replace NA values in Vicálvaro
+df_foreign$prop_foreign_2015[df_foreign$Area == "19. Vicálvaro" & is.na(df_foreign$prop_foreign_2015)] <- Vicalvaro_2015_foreign
+
+  # Replace NA values in Villa de Vallecas
+df_foreign$prop_foreign_2015[df_foreign$Neighborhood_code == "183" & is.na(df_foreign$prop_foreign_2015)] <- Vallecas_2015_foreign
+    
+# set empty population to 0
+df_foreign[is.na(df_foreign)] <- 0
+
+# save csv
+write.csv(df_foreign, "../Datasets - TFM/Cleaned datasets/Inmigrants_Madrid_per_neighborhood_2014-15-18-19", row.names = F)
+
+# should i remove new nieghborhoods? it makes sense
+```
+
+#### *Unemployment data*
+<p>Source (2018-19): https://www-s.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0904040000013</p>
+<p>Source (2014-15): https://www-s.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0904040000011</p>
+<p>
+I've extracted this data downloading the files provided by the Ayuntamiento de Madrid, the local government of the city.
+</p>
+<p>
+This data contains the unemployment rate, estimated by survey methods, for each neighborhood, district and for the entire Madrid city for the years 2018 and 2019. This data could be useful to improve a good approximation towards the social class of the district. The unemployment rate is a useful feature to use as a proxy of the social class of an area, as areas with a lower unemployment rate are consistently related to a higher status, while working classes suffer the most the effect of structural unemployment. 
+</p>
+
+```{r}
+odf_paro <- read.csv("../Datasets - TFM/Raw datasets/Ayto de Madrid - Tasa de paro 2018-19.csv", skip = 6, sep = ";", header = F, col.names = c("Year", "Zone", "Neighborhood" ,"Total_unem", "Women_unem")) %>% 
+  select(-Women_unem) 
+  
+# remove rows caused by errors of the administration (there are districts called "10. No consta"...)
+df_paro <- odf_paro[!grepl("No consta", odf_paro$Neighborhood), ]
+
+ # drop empty rows and pivot
+df_paro <- drop_na(df_paro) %>%
+  pivot_wider(names_from = Year, values_from = Total_unem, id_cols = "Neighborhood") %>% 
+  mutate(Neighborhood = str_replace_all(Neighborhood, "193. Valderribas", "193. Valderrivas"))
+
+names(df_paro) <- c("Neighborhood", "unem_2018", "unem_2019") 
+# fix the numerical values, as they are not readen correctly because of the thousand notation in spanish
+df_paro <- df_paro %>% 
+  mutate(unem_2018 = as.character(unem_2018), 
+         unem_2019 = as.character(unem_2019)) %>% 
+  # remove literal dots
+  mutate(unem_2018 = as.numeric(gsub("\\.", "", as.character(unem_2018))),
+         unem_2019 = as.numeric(gsub("\\.", "", as.character(unem_2019))))
+
+# data from 2014 and 2015
+df_paro_1415 <- read.csv("../Datasets - TFM/Raw datasets/Ayto de Madrid - Tasa de paro 2014-15.csv", skip = 6, sep = ";", header = F, col.names = c("Year", "Month", "Zone", "Neighborhood" ,"Total_unem"), dec = ",") %>% select(-Month) %>% 
+  mutate(Total_unem = as.numeric(gsub("\\.", "", as.character(Total_unem)))) %>% 
+  filter(stringr::str_detect(Neighborhood, "^\\d{3}"))
+
+# remove rows = "No consta" and empty rows
+df_paro_1415 <- df_paro_1415[!grepl("No consta", df_paro_1415$Neighborhood), ]
+df_paro_1415 <- df_paro_1415 %>% drop_na(Total_unem)
+# pivot years
+df_paro_1415 <- df_paro_1415 %>% 
+  select(Year, Neighborhood, Total_unem) %>% 
+  pivot_wider(names_from = Year, values_from = Total_unem, names_prefix = "unem_", id_cols = Neighborhood)
+
+# merge different years
+df_paro <- df_paro %>% left_join(df_paro_1415, by = "Neighborhood") %>% 
+  mutate(Neighborhood = str_squish(substring(Neighborhood, 5))) 
+
+# I need the population of each neighborhood to extract the proportion 
+df_paro <- df_foreign %>% select(-contains("prop"), -Area, -Neighborhood_code) %>% 
+  # join with unemployment dataframe
+  left_join(df_paro, by = "Neighborhood") %>% 
+  # calculate the unemployment proportion
+  mutate(unem_prop_2019 = unem_2019/total_2019,
+         unem_prop_2015 = unem_2015/total_2015)
+
+# set empty values to 0 for new neighborhoods
+df_paro[is.na(df_paro)] <- 0
+
+write.csv(df_paro, "../Datasets - TFM/Cleaned datasets/Unemployment_Madrid_per_neighborhood_2018-19", row.names = F)  
+```
+
+### *Housing prizes data*
+#### Read data of the real estate market prizes for existing housings in each neighborhood from Ayto. de Madrid (2014, 2015, 2018 & 2019). 
+<p>Source: https://www-s.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0504030000200</p>
+
+<p>
+This data is collected by Ayto. de Madrid and published in their "Banco de datos" open data website. it contains the information of the real estate prices in Madrid, per neighborhood, from the year 2001 until 2019. This information is very useful to observe if there has been an increment in the value of the neighborhood, which is a very important characteristic of potentially gentrified neighborhoods, as the increase of the prices would cause two effects: increasing real estate market restrictions for working class people in the neighborhood and in the demand of investment and living on a house in these neighborhoods in which prices are increasing. 
+</p>
+
+```{r}
+odf_housing_prize <- read.csv("../Datasets - TFM/Raw datasets/Evolución del precio de la vivienda 2a mano - Ayto de Madrid 2014-15-18-19.csv", skip = 4, col.names = c("Area", "Neighborhood", "2014", "2015", "2018", "2019"), sep = ";")
+# fix the year column names
+names(odf_housing_prize)[c(3, 4, 5, 6)] <- c("2014_house_prize", "2015_house_prize", "2018_house_prize", "2019_house_prize")
+# remove empty rows
+df_housing_prize <- subset(odf_housing_prize, Neighborhood != "") 
+
+# assign NAs 
+df_housing_prize$`2018_house_prize` <- ifelse(df_housing_prize$`2018_house_prize` == "Sin Datos", NA, df_housing_prize$`2018_house_prize`)
+df_housing_prize$`2019_house_prize` <- ifelse(df_housing_prize$`2019_house_prize` == "Sin Datos", NA, df_housing_prize$`2019_house_prize`)
+df_housing_prize$`2014_house_prize` <- ifelse(df_housing_prize$`2014_house_prize` == "Sin Datos", NA, df_housing_prize$`2014_house_prize`)
+df_housing_prize$`2015_house_prize` <- ifelse(df_housing_prize$`2015_house_prize` == "Sin Datos", NA, df_housing_prize$`2015_house_prize`)
+head(df_housing_prize)
+
+# fix the notation
+df_housing_prize <- df_housing_prize %>% mutate(
+  `2014_house_prize` = as.numeric(gsub("\\.", "", `2014_house_prize`)),
+  `2015_house_prize` = as.numeric(gsub("\\.", "", `2015_house_prize`)),
+  `2019_house_prize` = as.numeric(gsub("\\.", "", `2019_house_prize`)),
+  `2018_house_prize` = as.numeric(gsub("\\.", "", `2018_house_prize`))
+  ) %>% 
+  # filter the neighborhoods
+  filter(stringr::str_detect(Neighborhood, "^\\d{3}")) %>%
+  # create a neighborhood code column
+  mutate(Neighborhood_code = substring(Neighborhood, 1, 3)) %>% 
+  # remove the neighborhood code
+  mutate(Neighborhood = str_squish(substring(Neighborhood, 5))) %>% 
+  # change names to standarize
+  mutate(Neighborhood = str_replace_all(Neighborhood, "Casco Histórico de Vicálvaro (Valdebernardo - Valderribas)", "Valderrivas")) %>% 
+  mutate(Neighborhood = str_replace_all(Neighborhood, "Casco Histórico de Vicálvaro (El Cañaveral - Los Berrocales)", "El Cañaveral")) %>% 
+  mutate(Neighborhood = str_replace_all(Neighborhood, "Casco Histórico de Vallecas (Ensanche de Vallecas - Valdecarros- La Gavia)", "Ensanche de Vallecas")) %>% 
+  mutate(Neighborhood = str_replace_all(Neighborhood, "Casco Histórico de Vallecas (Ensanche de Vallecas - Valdecarros- La Gavia)", "Ensanche de Vallecas")) %>% 
+  # there are several neighborhoods divided in several areas, merge them to get the mean
+  group_by(Neighborhood_code) %>% mutate(
+    `2014_house_prize` = mean(`2014_house_prize`, na.rm = T),
+    `2015_house_prize` = mean(`2015_house_prize`, na.rm = T),
+    `2018_house_prize` = mean(`2018_house_prize`, na.rm = T),
+    `2019_house_prize` = mean(`2019_house_prize`, na.rm = T)
+  ) %>% ungroup() %>% distinct(Neighborhood_code, .keep_all = T)
+
+# reassign NAs
+# assign NAs 
+df_housing_prize$`2018_house_prize` <- ifelse(df_housing_prize$`2018_house_prize` == "NaN", NA, df_housing_prize$`2018_house_prize`)
+df_housing_prize$`2019_house_prize` <- ifelse(df_housing_prize$`2019_house_prize` == "NaN", NA, df_housing_prize$`2019_house_prize`)
+df_housing_prize$`2014_house_prize` <- ifelse(df_housing_prize$`2014_house_prize` == "NaN", NA, df_housing_prize$`2014_house_prize`)
+df_housing_prize$`2015_house_prize` <- ifelse(df_housing_prize$`2015_house_prize` == "NaN", NA, df_housing_prize$`2015_house_prize`)
+
+write.csv(df_housing_prize, "../Datasets - TFM/Cleaned datasets/madrid_house_prizes_2014-15-18-19", row.names = F)
+```
+
+### *Education*
+## Data from Ayto. de Madrid of neighborhoods' descriptive data 
+<p> 
+Source: https://datos.madrid.es/portal/site/egob/menuitem.c05c1f754a33a9fbe4b2e4b284f1a5a0/?vgnextoid=71359583a773a510VgnVCM2000001f4a900aRCRD&vgnextchannel=374512b9ace9f310VgnVCM100000171f5a0aRCRD&vgnextfmt=default:
+</p>
+<p>
+This data is a panel of a wide range of sociodemographic characteristics of the population in each of the neighborhoods in Madrid. Among this information there is the educational level of the inhabitants of each area, which is an important information for analyzing the social class structure of the different neighborhoods in Madrid. It's provided by Ayto. de Madrid in the source link above.
+</p>
+
+```{r}
+# 2019
+df_educ_2019 <- read.csv("../Datasets - TFM/Raw datasets/panel_indicadores_distritos_barrios_2019-2021 - Ayto de Madrid.csv", sep = ";", header = T, fileEncoding = "ISO-8859-1") %>% 
+  # filter to obtain the education level metrics
+  filter(categoría_1 == "Educación") %>% 
+  filter(categoría_2 == "Nivel de estudios de la población") %>% # stands for population education level
+  # filter by the year 2019
+  filter(año == "2019") %>% 
+  # remove non informative or redundant columns
+  select(cod_distrito, distrito, barrio, año, indicador_nivel2, valor_indicador) %>% 
+  mutate(distrito = ifelse(is.na(cod_distrito), "Madrid ciudad", distrito)) %>% 
+  select(-cod_distrito)
+
+names(df_educ_2019) <- c("District", "Neighborhood", "Year", "Education_lvl", "n_people")
+
+# add population to compute the proportion
+df_educ_2019 <- df_educ_2019 %>% 
+  # delete the "." and transform into numeric
+  mutate(n_people = gsub("\\.", "", n_people)) %>% 
+  mutate(n_people = as.numeric(n_people)) %>% 
+  mutate(n_people = ifelse(is.na(n_people), 0, n_people)) %>% # NAs for 0s
+  mutate(Neighborhood = ifelse(Neighborhood != "", Neighborhood, District)) %>% # clean the empty neighborhood fields by adding the district name
+  group_by(Neighborhood) %>% 
+  mutate(population = sum(n_people),
+         proportion = n_people/population) %>% 
+# pivot the educational levels for the proportion
+  select(-n_people, -population) %>% 
+  pivot_wider(names_from = Education_lvl, values_from = proportion)
+
+df_educ_2019
+```
+
+```{r}
+# cleaned dataframe
+df_educ_2019
+write.csv(df_educ_2019, "../Datasets - TFM/Cleaned datasets/education_level_per_neighborhood_Madrid_2019.csv", row.names = F)
+```
+
+### *Tourism*
+## Airbnb housings in Madrid city: 
+<p> 
+Source:http://insideairbnb.com/get-the-data 
+</p>
+<p> 
+This data is verified, cleansed, analyzed and aggregated by Inside Airbnb, the webpage above, web-scraping public information in airbnb.com. This information allows to know which is the impact of tourism in the neighborhoods and how does it transform it, in terms of the use and the target users of those housings, in this case, tourists. Gathering data from Airbnb is essential for this study as one of the effects of gentrification is precisely the transformation of a working class neighborhood into an adequate area for middle and new privileged classes, in some cases accommodated tourists in the case of Spain. 
+</p>
+
+```{r}
+df_airbnb <- read_csv("../Datasets - TFM/Raw datasets/listings_airbnb.csv")
+df_airbnb <- df_airbnb %>% select(id, neighbourhood)
+
+# Load the compressed CSV file
+df_airbnb_detailed <- read.csv2("../Datasets - TFM/Raw datasets/listings_airbnb_detailed.csv.gz", sep = ",")
+
+# define the first review for each airbnb to know when did it start to be available
+df_first_review <- df_airbnb_detailed %>% select(id, first_review, price)
+df_airbnb <- df_airbnb %>% left_join(df_first_review, by = "id")
+df_airbnb <- df_airbnb %>% 
+  mutate(
+    first_review = ymd(first_review),
+         # make price column numeric delting the "$"
+         price = as.numeric(str_remove(price, "\\$"))
+    ) %>% 
+  drop_na() # remove housings without reviews as they could be new housings, I don't know if they were available in the target years
+names(df_airbnb)[4] <- "price ($)"
+
+# filter by years
+df_airbnb_2019 <- df_airbnb %>% filter(first_review < as.Date("2020-01-01"))
+df_airbnb_2015 <- df_airbnb %>% filter(first_review < as.Date("2016-01-01"))
+
+# compute the average price and the number of housings per neighborhood
+  # 2019
+df_airbnb_2019 <- df_airbnb_2019 %>% group_by(neighbourhood) %>% 
+  summarise(
+    n_housings_2019 = n(),
+    mean_airbnb_price_usd_2019 = mean(`price ($)`)
+            ) %>% ungroup()
+
+  # 2015
+df_airbnb_2015 <- df_airbnb_2015 %>% group_by(neighbourhood) %>% 
+  summarise(
+    n_housings_2015= n(),
+    mean_airbnb_price_usd_2015 = mean(`price ($)`)
+            ) %>% ungroup()
+
+# join everything
+df_airbnb <- df_airbnb_2019 %>% 
+  full_join(df_airbnb_2015, by = "neighbourhood") 
+df_airbnb[is.na(df_airbnb)] <- 0 # set empty values to 0, as stand for neighborhoods without airbnb posts
+names(df_airbnb)[1] <- "Neighborhood"
+# cleaned dataframe
+df_airbnb
+
+write.csv(df_airbnb, "../Datasets - TFM/Cleaned datasets/n_airbnbs_and_price_madrid_per_neighborhood_2014-15-18-19.csv", row.names = F)
+
+# NOTE: using the increase of the airbnb prices I can solve the problem of the missing data about the real estate prices, if I can show a high correlation between airbnb and real estate prices. The problem is that the prices are from 2023, so the increment would mean the improvement of the type of posted housings from the different neighborhoods. 
+```
+
+## *Population aging*
+<p>Source:https://www-s.madrid.es/CSEBD_WBINTER/seleccionSerie.html?numSerie=0301000000001</p>
+
+```{r}
+# 2015
+df_age_2015 <- read.csv("../Datasets - TFM/Raw datasets/Población_por_edad_2015_Madrid_barrios.csv", sep = ";", header = F, skip = 7, col.names = c("District", "Neighborhood", "Age_group_ext", "n_population"), dec = ",") 
+
+df_age_2015 <- df_age_2015 %>% 
+  mutate(n_population = as.numeric(str_replace_all(n_population, "\\.", "")),
+         Age_group_ext = str_trim(Age_group_ext)) %>%
+  mutate(Age_group = case_when(
+    Age_group_ext %in% c("0 - 4", "5 - 9", "10 - 14", "15 - 19") ~ "<19",
+    Age_group_ext %in% c("20 - 24", "25 - 29", "30 - 34") ~ "20 - 34",
+    Age_group_ext %in% c("35 - 39", "40 - 44", "45 - 49") ~ "35 - 49",
+    Age_group_ext %in% c("50 - 54", "55 - 59", "60 - 64") ~ "50 - 64",
+    Age_group_ext %in% c("65 - 69", "70 - 74", "75 - 79", "80 - 84", "85 - 89", "90 - 94", "95 - 99", "100 o más") ~ ">64"
+  )) %>% 
+  mutate(Age_group_bin = ifelse(Age_group == ">64", ">64", "below_65")) %>% 
+  group_by(Neighborhood) %>% mutate(population = sum(ifelse(Age_group_ext == "00 TODOS", n_population, 0))) %>% 
+  group_by(Neighborhood, Age_group_bin) %>% summarise(
+    age_group_pop = sum(n_population),
+    population = population
+    ) %>% drop_na() %>% distinct() %>% filter(Age_group_bin == ">64") %>% 
+  mutate(Aging_index_2015 = (age_group_pop/population)) %>% ungroup() %>%  select(Neighborhood, Aging_index_2015) 
+
+# 2019
+df_age_2019 <- read.csv("../Datasets - TFM/Raw datasets/Población_por_edad_2019_Madrid_barrios.csv", sep = ";", header = F, skip = 7, col.names = c("District", "Neighborhood", "Age_group_ext", "n_population"), dec = ",")
+
+library(stringr)
+
+df_age_2019 <- df_age_2019 %>%
+  mutate(n_population = as.numeric(str_replace_all(n_population, "\\.", "")),
+         Age_group_ext = str_trim(Age_group_ext)) %>%
+  mutate(Age_group = case_when(
+    Age_group_ext %in% c("0 - 4", "5 - 9", "10 - 14", "15 - 19") ~ "<19",
+    Age_group_ext %in% c("20 - 24", "25 - 29", "30 - 34") ~ "20 - 34",
+    Age_group_ext %in% c("35 - 39", "40 - 44", "45 - 49") ~ "35 - 49",
+    Age_group_ext %in% c("50 - 54", "55 - 59", "60 - 64") ~ "50 - 64",
+    Age_group_ext %in% c("65 - 69", "70 - 74", "75 - 79", "80 - 84", "85 - 89", "90 - 94", "95 - 99", "100 o más") ~ ">64"
+  )) %>% 
+  mutate(Age_group_bin = ifelse(Age_group == ">64", ">64", "below_65")) %>% 
+  group_by(Neighborhood) %>% mutate(population = sum(ifelse(Age_group_ext == "00 TODOS", n_population, 0))) %>% 
+  group_by(Neighborhood, Age_group_bin) %>% summarise(
+    age_group_pop = sum(n_population),
+    population = population
+    ) %>% drop_na() %>% distinct() %>% filter(Age_group_bin == ">64") %>% 
+  mutate(Aging_index_2019 = (age_group_pop/population)) %>% ungroup() %>%  select(Neighborhood, Aging_index_2019)
+  
+df_age <- df_age_2019 %>% full_join(df_age_2015, by = "Neighborhood") %>% 
+  mutate(aging_index_incr = Aging_index_2019 - Aging_index_2015,
+         Neighborhood = str_squish(Neighborhood)) %>%
+  mutate(Neighborhood = str_replace_all(Neighborhood, "PUERTA DEL ANGEL", "PUERTA DEL ÁNGEL")) %>% 
+  select(-Aging_index_2015) 
+df_age <- df_age[df_age$Neighborhood != "NO CONSTA", ]
+names(df_age)[1] <- "Neighborhood_caps"
+
+  
+```
+
+## Merge dataframes
+
+```{r}
+# prepare the different dataframes to be merged and calculate increment in some of the dataframes
+df_foreign_19 <- df_foreign %>% select(Neighborhood, Neighborhood_code, prop_foreign_2015, prop_foreign_2019) %>% 
+  mutate(foreign_incr_last_4_years = (prop_foreign_2019 - prop_foreign_2015)) %>% 
+  select(-prop_foreign_2015)
+
+df_housing_prize_19 <- df_housing_prize %>% 
+  select(-`2014_house_prize`, -`2018_house_prize`, -Area) 
+
+df_airbnb_19 <- df_airbnb %>% select(-contains("2014"), -contains("2018")) %>% 
+  mutate(
+    n_housing_incr_last_4_years = n_housings_2019 - n_housings_2015,
+    airbnb_price_incr_last_4_years = mean_airbnb_price_usd_2019 - mean_airbnb_price_usd_2015
+         ) %>% select(-contains("2015"))
+
+df_paro_19 <- df_paro %>% select(Neighborhood, total_2019, total_2015, unem_prop_2019, unem_prop_2015) %>% 
+  mutate(
+    population_incr_last_4_years = total_2019 - total_2015,
+    unem_incr_last_4_years = unem_prop_2019 - unem_prop_2015
+  ) %>% select(-contains("2015"))
+
+# translate and summarise the different educ_levels
+df_educ_2019 <- df_educ_2019 %>% select(District, Neighborhood, 10, 4, 5, 6, 7, 8, 9) %>% 
+  # standardize neighborhood names
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "(Los |Las |Del |La )", ""))) %>% 
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "Moguer", "la Frontera"))) %>% 
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "C.H. Villaverde", "Casco Histórico de Villaverde"))) %>% 
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "Jerónimos$", "Los Jerónimos"))) %>% 
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "Paz$", "La Paz"))) %>% 
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "Cármenes$", "Los Cármenes"))) %>% 
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "Rosales$", "Los Rosales")))%>% 
+  mutate(Neighborhood = str_squish(str_replace_all(Neighborhood, "El Pilar$", "Pilar")))
+# remove district rows 
+df_educ_2019 <- df_educ_2019 %>% filter(Neighborhood != District) %>% 
+  select(-District) # remove the district column
+names(df_educ_2019) <- c("Neighborhood", 
+                         "Unknown_studies",
+                         "Non_literate",
+                         "Incomplete_elementary",
+                         "Compulsory_educ",
+                         "FP_or_pre_college",
+                         "College_graduate",
+                         "Post_graduate")
+
+df_19 <- df_foreign_19 %>% 
+  left_join(df_housing_prize_19, by = c("Neighborhood", "Neighborhood_code")) %>% 
+  left_join(df_airbnb_19, by = "Neighborhood") %>% 
+  left_join(df_paro_19, by = "Neighborhood") %>% 
+  left_join(df_educ_2019, by = "Neighborhood") %>%
+  # change missing airbnb values to 0, as they correspond to neighborhoods with no airbnb posts 
+  mutate(
+    n_housings_2019 = ifelse(is.na(n_housings_2019), 0, n_housings_2019),
+    mean_airbnb_price_usd_2019 = ifelse(is.na(mean_airbnb_price_usd_2019), 0, mean_airbnb_price_usd_2019),
+    n_housing_incr_last_4_years = ifelse(is.na(n_housing_incr_last_4_years), 0, n_housing_incr_last_4_years),
+    airbnb_price_incr_last_4_years = ifelse(is.na(airbnb_price_incr_last_4_years), 0, airbnb_price_incr_last_4_years)
+  ) %>% select(-Neighborhood_code)
+names(df_19)[c(2, 4, 5, 6, 7, 8, 10 )] <- c("prop_foreign", "house_price_2015", "house_price_2019", "n_airbnbs", "mean_airbnb_price", "n_airbnb_incr_last_4_years", "population")
+
+# Join Population aging dataframe
+df_19 <- df_19 %>% 
+  mutate(Neighborhood_caps = str_squish(toupper(Neighborhood))) %>% 
+  full_join(df_age, by = "Neighborhood_caps") %>% 
+  # I decided to remove the new neighborhoods in Madrid, as they follow a completely different structure, are not the subject of gentrification, but other urbanism processes, and the data is incomplete. I also tested the cluster analysis with them and they ended up in an exclusive cluster.
+  drop_na(aging_index_incr) %>% 
+  select(-Neighborhood_caps) 
+
+# Estimating NA values of the housing prices
+
+#Percentage of Na's?
+sapply(df_19, function(x) sum(is.na(x))*100/nrow(df_19))
+# as there is low portion of the data missing, it's appropiate to impute the NAs
+
+# NA imputation model by Predictive Mean Matching imputation method with kNN imputation
+m = 4 # number of multiple imputations
+mice_mod_2 <- mice(df_19, m=m, method='pmm') # mice imputation model  
+df_19 <- complete(mice_mod_2, action=m) # fills the NAs with the imputed values
+
+# calculate the proportional increment of real estate prices and remove population & 2014 data
+df_19 <- df_19 %>%
+  mutate(house_price_incr_last_4_years = (`house_price_2019` - `house_price_2015`)/`house_price_2015`) %>%
+  select(-`house_price_2015`, -population)
+
+write.csv(df_19, "../Datasets - TFM/Cleaned datasets/Madrid_gentrification_data_2019", row.names = F)
+```
+
+## Cluster analysis
+
+### Feature engineering (for scale purposes)
+
+#### Frequency distribution distribution 
+
+```{r}
+  # house price
+hist(df_19$house_price_2019, col="cadetblue2", main = "Real estate prices distribution in Madrid, 2019")
+  # nº airbnbs
+hist(df_19$n_airbnbs, col="darkgoldenrod1", main = "Number of Airbnbs distribution through the neighborhoods in Madrid, 2019")
+hist(df_19$n_airbnbs[df_19$n_airbnbs >100], col="darkgoldenrod3", main = "Number of Airbnbs distribution through the neighborhoods in Madrid (>100), 2019")
+  # Increment of nº airbnbs
+hist(df_19$n_airbnb_incr_last_4_years, col="darkgoldenrod4", main = "Increment of the nº of Airbnbs distribution through the neighborhoods in Madrid, 2019")
+hist(df_19$n_airbnb_incr_last_4_years[df_19$n_airbnb_incr_last_4_years >75], col="darkgoldenrod3", main = "Increment of the nº of Airbnbs distribution through the neighborhoods in Madrid (>75), 2019")
+  # airbnb price and increment
+hist(df_19$mean_airbnb_price, col="#FA937E", main = "Mean Airbnbs price distribution in Madrid, 2019")
+hist(df_19$airbnb_price_incr_last_4_years, col="tomato3", main = "Increment of the price of Airbnbs distribution in Madrid, 2019")
+  # population evolution 
+hist(df_19$population_incr_last_4_years, col="darkolivegreen2", main = "Increment of the population distribution in the neighborhoods in Madrid, 2019")
+ # population evolution 
+hist(df_19$foreign_incr_last_4_years, col="green4", main = "Increment of the foreign population distribution in the neighborhoods in Madrid, 2019")
+```
+
+```{r}
+# Save plots
+plotDir <- "../Plots/Scale Barplots" # Set the directory path
+
+# Function to save a histogram plot
+saveHistogramPlot <- function(data, col, main, filename) {
+  # Generate the histogram plot
+  hist(data, col = col, main = main)
+  # Specify the file path for saving the plot
+  plotFilePath <- file.path(plotDir, filename)
+  # Save the plot to the specified file path
+  dev.copy(png, filename = plotFilePath)
+  dev.off()
+}
+
+# Save each of the plots
+saveHistogramPlot(df_19$house_price_2019, "cadetblue2", "Real estate prices distribution in Madrid, 2019", "plot1.png")
+saveHistogramPlot(df_19$n_airbnbs, "darkgoldenrod1", "Number of Airbnbs distribution through the neighborhoods in Madrid, 2019", "plot2.png")
+saveHistogramPlot(df_19$n_airbnbs[df_19$n_airbnbs > 100], "darkgoldenrod3", "Number of Airbnbs distribution through the neighborhoods in Madrid (>100), 2019", "plot3.png")
+saveHistogramPlot(df_19$n_airbnb_incr_last_4_years, "darkgoldenrod4", "Increment of the nº of Airbnbs distribution through the neighborhoods in Madrid, 2019", "plot4.png")
+saveHistogramPlot(df_19$n_airbnb_incr_last_4_years[df_19$n_airbnb_incr_last_4_years > 75], "darkgoldenrod3", "Increment of the nº of Airbnbs distribution through the neighborhoods in Madrid (>75), 2019", "plot5.png")
+saveHistogramPlot(df_19$mean_airbnb_price, "#FA937E", "Mean Airbnbs price distribution in Madrid, 2019", "plot6.png")
+saveHistogramPlot(df_19$airbnb_price_incr_last_4_years, "tomato3", "Increment of the price of Airbnbs distribution in Madrid, 2019", "plot7.png")
+saveHistogramPlot(df_19$population_incr_last_4_years, "darkolivegreen2", "Increment of the population distribution in the neighborhoods in Madrid, 2019", "plot8.png")
+saveHistogramPlot(df_19$foreign_incr_last_4_years, "green4", "Increment of the foreign population distribution in the neighborhoods in Madrid, 2019", "plot9.png")
+
+```
+
+#### Variable transformations
+
+```{r}
+df_19_scaled <- df_19 %>% mutate(
+  house_price_2019 = log(house_price_2019+1), # as it exhibits a skewed distribution, it's appropiate to scale by a logarithmic transformation
+  n_airbnbs = log(n_airbnbs+1),
+  mean_airbnb_price = log(mean_airbnb_price+1),
+  n_airbnb_incr_last_4_years = log(n_airbnb_incr_last_4_years+1),
+  airbnb_price_incr_last_4_years = scale(airbnb_price_incr_last_4_years), # as it exhibits approximately a normal distribution, it's appropiate to scale by a z score standardization
+  population_incr_last_4_years = scale(population_incr_last_4_years, center = T, scale = T), # as it exhibits a distribution prone to outliers, it's appropiate to apply robust scaling
+  foreign_incr_last_4_years = scale(foreign_incr_last_4_years, center = T, scale = T) # as it is also exhibiting a normal distribution prone to outliers, it's appropiate to apply robust scaling
+)
+```
+
+#### Correlation
+
+```{r}
+corr_matrix <- df_19_scaled %>% select(-Neighborhood) %>% 
+  cor() %>% 
+  corrplot()
+corr_matrix
+
+dev.copy(png, filename = "../Plots/Correlation matrix.png")
+dev.off()
+```
+
+### Clustering
+
+#### Estimating the ideal number of clusters
+
+```{r}
+# get a dataframe with only numerical variables
+df_19_num <- df_19_scaled %>% select(-Neighborhood) 
+  # standardize variables
+
+names_19 <- df_19 %>% select(Neighborhood)
+
+# Estimate the most efficient number of clusters for the data
+set.seed(23)
+wss_k <- fviz_nbclust(df_19_num, kmeans, method = 'wss', k.max = 20, nstart = 500)
+silh_k <- fviz_nbclust(df_19_num, kmeans, method = 'silhouette', k.max = 20, nstart = 500)
+gap_k <- fviz_nbclust(df_19_num, kmeans, method = 'gap_stat', k.max = 10, nstart = 100, nboot = 500)
+
+# Save plots
+plotDir <- "../Plots/k_clusters_estimates"
+wss_plot <- ggplot_build(wss_k)$plot
+wss_plot_file <- file.path(plotDir, "wss_plot.png")
+ggsave(wss_plot_file, plot = wss_plot, device = "png")
+
+silh_plot <- ggplot_build(silh_k)$plot
+silh_plot_file <- file.path(plotDir, "silhouette_plot.png")
+ggsave(silh_plot_file, plot = silh_plot, device = "png")
+
+gap_plot <- ggplot_build(gap_k)$plot
+gap_plot_file <- file.path(plotDir, "gap_stat_plot.png")
+ggsave(gap_plot_file, plot = gap_plot, device = "png")
+
+# Plots 
+wss_plot
+silh_plot
+gap_plot 
+
+# as the other methods show a low ideal number of clusters that cannot describe the complex information in the dataset, I choose to use 9 clusters as it will be a large number of clusters that can explain the differences between neighborhoods across clusters, and it shows that more clusters are not going to add significant information
+```
+
+
+```{r}
+# As there are 5 steps of the gentrification that occur in a neighborhood, according to Sorando, D. & Ardura, A. (2016). Also, by looking at the graphs, 5 number of clusters is a fair trade off between distinctiveness and within similarity. 
+k = 6
+
+# fit the k-means model
+set.seed(23) # seed for reproducibility
+model_19 <- kmeans(df_19_num, centers=k, nstart = 10000)  #nstart for nº of steps
+
+# fit a hierarchical model
+set.seed(23)
+d <- dist(df_19_num, method = "euclidean") # eucledian clustering
+hc_model <- hclust (d, method = "ward.D2") # Ward's theory clustering
+hc_model$labels <- names_19$Neighborhood
+dend_plot <- fviz_dend(x = hc_model,
+          k = k,
+          color_labels_by_k = TRUE, 
+          k_colors = c( # mostly, from ColorBlindness package
+  "#006DDB", # 6
+  "#24FF24", # 4
+  "#000000", # 1
+  "#009292", # 2   
+  "yellow3", # 3
+  "red"      # 5
+  ),
+          cex = 0.8,
+          type = "phylogenic",
+          repel = TRUE)+  labs(title="Gentrification tree clustering of Madrid Neighborhood") + theme(axis.text.x=element_blank(),axis.text.y=element_blank()) 
+
+
+
+dend_plot_file <- file.path("../Plots", "Phylogenic_tree_hierarchical_clusters.png")
+ggsave(dend_plot_file, dend_plot, dpi = 300)
+dend_plot
+# store the results from k-means method in dataframes
+model_19
+df_clusters_19 <- data.frame(t(model_19$centers))
+df_clusters_19
+df_neighborhood_clusters <- data.frame(Neighborhood = names_19$Neighborhood, Cluster = model_19$cluster) # store in a dataframe the cluster of each neighborhood
+
+# store the results from hierarchical method in dataframes
+cluster_labels <- cutree(hc_model, k = k)
+df_hclusters_19 <- data.frame(Neighborhood = names_19$Neighborhood, Cluster = cluster_labels)
+row.names(df_hclusters_19) <- NULL
+
+hmodel <- df_19_scaled %>% left_join(df_hclusters_19, by = "Neighborhood") %>% 
+  group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
+hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
+names(hmodel) <- c("C1", "C2", "C3", "C4", "C5")
+hmodel
+```
+
+### Clustering goodness
+
+```{r}
+print("K-means method")
+# K-means clustering
+set.seed(23)
+silhouette_km <- silhouette(model_19$cluster, dist(df_19_num))
+within_cluster_homogeneity_km <- numeric(k)
+
+for (i in 1:k) {
+  cluster_indices <- which(model_19$cluster == i)
+  within_cluster_homogeneity_km[i] <- mean(silhouette_km[,3][cluster_indices])
+}
+
+# Print within-cluster homogeneity for each cluster
+for (i in 1:k) {
+  cat("Cluster", i, "homogeneity:", within_cluster_homogeneity_km[i], "\n")
+}
+print("Hierarchical method")
+# Hierarchical clustering 
+set.seed(23)
+pamclu <- cluster::pam(t(d),k=5)
+silhouette_hc <- silhouette(pamclu)
+within_cluster_homogeneity_hc <- numeric(k)
+
+for (i in 1:k) {
+  cluster_indices <- which(model_19$cluster == i)
+  within_cluster_homogeneity_hc[i] <- mean(silhouette_hc[,3][cluster_indices])
+}
+
+# Print within-cluster homogeneity for each cluster
+for (i in 1:k) {
+  cat("Cluster", i, "homogeneity:", within_cluster_homogeneity_hc[i], "\n")
+}
+```
+
+### Visualization of the cluster centers
+
+```{r}
+# k-means method
+centers=model_19$centers
+# Set the directory path where the plots should be saved
+plotDir <- "../Plots/kn Clusters barplots"
+
+# Set the margin size for the plot
+par(mar = c(15, 4, 1, 1))
+
+# Loop through the centers and generate and save the bar plots
+for (i in 1:6) {
+  # Generate the bar plot
+  barplot(centers[i,], las = 2, col = "navajowhite3")
+  # Save the plot as PNG
+  plot_file <- file.path(plotDir, paste0("kn_clusters_barplot(", i, ").png"))
+  dev.copy(png, filename = plot_file)
+  dev.off()
+}
+
+# hierarchical method
+hcenters=as.matrix(t(hmodel))
+par(mar=c(13,8,1,1))
+for (i in 1:6) {
+  # Generate the bar plot
+  barplot(hcenters[i,], las = 2, col = "chocolate")
+  # Save the plot as PNG
+  plot_file <- file.path(plotDir, paste0("hierarchical_clusters_barplot(", i, ").png"))
+  dev.copy(png, filename = plot_file)
+  dev.off()
+}
+
+
+```
+
+### Geographical visualization of the clusters. 
+#### Load data of the neighborhoods of Madrid
+###### K-means method
+```{r}
+# Load geospatial data of Madrid
+map_barrios <- read_sf("../Datasets - TFM/Raw datasets/Barrios Madrid/200001469.shp")	
+map_barrios$DESBDT <- iconv(map_barrios$DESBDT,from="Windows-1252", to="UTF-8")	
+
+# Transform geospatial data to the WSG84 spatial projection, and standardize neighborhood names.	 	
+mapb <- st_transform(map_barrios,4326)
+mapb <- mapb %>% mutate(DESBDT = str_squish(substring(DESBDT, 5))) %>% 
+    mutate(DESBDT = str_squish(str_replace_all(DESBDT, "(Los |Las |Del |La )", ""))) %>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "Moguer", "la Frontera"))) %>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "Jerónimos$", "Los Jerónimos"))) %>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "Paz$", "La Paz"))) %>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "Cármenes$", "Los Cármenes"))) %>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "Rosales$", "Los Rosales")))%>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "El Pilar$", "Pilar"))) %>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "San Andrés$", "Villaverde Alto, Casco Histórico de Villaverde"))) %>% 
+  mutate(DESBDT = str_squish(str_replace_all(DESBDT, "Peña Grande$", "Peñagrande"))) 
+# join with neighborhoods' cluster data
+names(df_neighborhood_clusters)[1] <- "DESBDT"
+mapb_kn <- mapb %>% left_join(df_neighborhood_clusters, by = "DESBDT") %>% drop_na()
+
+```
+
+# Madrid map of clusters by neighborhood
+
+```{r}
+factpal <- colorFactor(c( # mostly, from ColorBlindness package
+  "#009292", # 1
+  "#E18727", # 2
+  "#006DDB", # 3
+  "red", # 4
+  "#24FF24", # 5
+  "yellow" # 6
+  ), as.factor(mapb_kn$Cluster))	# define color palette
+
+kn_map <- leaflet(mapb_kn) %>% 
+  addTiles() %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_kn$Cluster))) %>% 
+  addLegend("bottomright", 
+            pal = factpal, 
+            values = as.factor(mapb_kn$Cluster),
+            title = "Cluster", 
+            labFormat = labelFormat())
+kn_map
+
+# Save the map as an HTML file
+mapDir <- "../Plots/Interactive_maps"
+map_file <- file.path(mapDir, "Interactive_Madrid_Gentrification_knClusters_Map.html")
+saveWidget(kn_map, map_file , selfcontained = FALSE)
+
+
+```
+
+###### Hierarchical method
+
+```{r}
+names(df_hclusters_19)[1] <- "DESBDT"
+mapb_hc <- mapb %>% left_join(df_hclusters_19, by = "DESBDT") %>% drop_na()
+
+factpal <- colorFactor(c( # mostly, from ColorBlindness package
+  "#000000", # 1
+  "#009292", # 2
+  "#006DDB", # 3
+  "red", # 4
+  "#24FF24", # 5
+  "yellow" # 6
+  ), as.factor(mapb_hc$Cluster))	# define color palette
+
+# leaflet map 
+hc_map <- leaflet(mapb_hc) %>% 
+  addTiles() %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_hc$Cluster))) %>% 
+  addLegend("bottomright", 
+            pal = factpal, 
+            values = as.factor(mapb_hc$Cluster),
+            title = "Cluster", 
+            labFormat = labelFormat())
+hc_map
+
+# Save the map as an HTML file
+mapDir <- "../Plots/Interactive_maps"
+map_file <- file.path(mapDir, "Interactive_Madrid_Gentrification_Hierarchical_Clusters_Map.html")
+saveWidget(hc_map, map_file , selfcontained = FALSE)
+```
+
+# Clusters centers for the different variables
+
+```{r}
+names(df_hclusters_19)[1] <- "Neighborhood"
+df_19 <- df_19 %>% full_join(df_hclusters_19, by = "Neighborhood") %>% 
+  select(Cluster, everything())
+write.csv(df_19, file = "../Datasets - TFM/Cleaned datasets/Gentrification_Madrid_2019_dataset_result.csv")
+
+df_cluster_neigh_hc_descaled <- df_19 %>% group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
+df_cluster_neigh_hc_descaled <- df_cluster_neigh_hc_descaled %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
+names(df_cluster_neigh_hc_descaled) <- c("C1", "C2", "C3", "C4", "C5")
+df_cluster_neigh_hc_descaled
+
+# hmodel <- df_19_scaled %>% left_join(df_hclusters_19, by = "Neighborhood") %>% 
+#   group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
+# hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
+# names(hmodel) <- c("C1", "C2", "C3", "C4", "C5")
+# hmodel
+```
+
+###### Different tables and plots for cluster analysis
+
+```{r}
+# Cluster 2 insights
+cl_2_insights <- df_19 %>% filter(Cluster == 2) %>% 
+  select(Neighborhood, house_price_2019, n_airbnbs, n_airbnb_incr_last_4_years, mean_airbnb_price, unem_prop_2019, Post_graduate, Compulsory_educ, Incomplete_elementary, aging_index_incr, house_price_incr_last_4_years) %>% arrange(Post_graduate) %>% head(15) %>% mutate_if(is.numeric, round, digits = 4)
+cl_2_insights
+write.csv(cl_2_insights, "../Datasets - TFM/Cleaned datasets/Cluster_2_vulnerable_neighborhoods.csv", row.names = F)
+```
+
+```{r}
+# Cluster 3 insights
+cl_3_insights <- df_19 %>% filter(Cluster == 3) %>% 
+  select(Neighborhood, house_price_2019, house_price_incr_last_4_years, n_airbnbs, Post_graduate, unem_prop_2019) 
+  cl_3_gentrified <- cl_3_insights[c(29, 31, 16, 28, 14, 15, 13, 34, 18), ] %>%  mutate_if(is.numeric, round, digits = 4)
+## relationship between Post Graduate and House Price
+cl3_postgrad_house_price_incr <- cl_3_insights %>%
+    ggplot(aes(x = Post_graduate, y = house_price_incr_last_4_years)) +
+    geom_line(color = "darkgoldenrod1", size = 1) +
+    geom_text(data = filter(cl_3_insights, house_price_incr_last_4_years > 0.45),
+              aes(label = Neighborhood), vjust = -1, color = "#4F4F4F") +
+    labs(x = "Post Graduate", y = "House Price Increase (Last 4 Years)",
+         title = "Relationship between Post Graduate and House Price Increase in Cluster 3") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(0, 10, 0, 0)) +
+    scale_x_continuous(limits = c(-0.001, max(cl_3_insights$Post_graduate)))
+  cl3_postgrad_house_price_incr
+  # save plot
+  ggsave("../Plots/Individual_cluster_analysis/Cluster_3_Post_graduates_Real_estate_price_increase.png", plot = cl3_postgrad_house_price_incr, width = 10, height = 8, dpi = 300)
+```
+
