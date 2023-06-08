@@ -825,25 +825,212 @@ df_cluster_neigh_hc_descaled <- df_cluster_neigh_hc_descaled %>% select(-Cluster
 names(df_cluster_neigh_hc_descaled) <- c("C1", "C2", "C3", "C4", "C5")
 df_cluster_neigh_hc_descaled
 
-# hmodel <- df_19_scaled %>% left_join(df_hclusters_19, by = "Neighborhood") %>% 
-#   group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
-# hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
-# names(hmodel) <- c("C1", "C2", "C3", "C4", "C5")
-# hmodel
+hmodel <- df_19_scaled %>% left_join(df_hclusters_19, by = "Neighborhood") %>%
+  group_by(Cluster) %>% select(-Neighborhood) %>% summarise_all(mean)
+hmodel <- hmodel %>% select(-Cluster) %>% t() %>% data.frame() %>% round(digits = 4)
+names(hmodel) <- c("C1", "C2", "C3", "C4", "C5")
+hmodel
+
+# plot
+hmodel_df_plot <- hmodel %>% as.data.frame() %>% select(contains("C"))
+hmodel_df_plot$variables <- row.names(hmodel)
+row.names(hmodel_df_plot) <- NULL
+hmodel_df_plot <- hmodel_df_plot %>% gather(key = "Cluster", value = "Value", -variables)
+
+hmodel_df_plot$variables <- factor(hmodel_df_plot$variables, levels = hmodel_df_plot$variables[order(hmodel_df_plot$Value[hmodel_df_plot$Cluster == "C1"], decreasing = TRUE)])
+
+
+plot1_variables <- c("house_price_2019", "n_airbnbs", "n_airbnb_incr_last_4_years", "mean_airbnb_price", "population_incr_last_4_years", "airbnb_price_incr_last_4_years")
+plot1_data <- hmodel_df_plot %>% filter(variables %in% plot1_variables)# Filter data for the first plot
+
+cl_centers_plot1 <- ggplot(plot1_data, aes(x = variables, y = Value, color = Cluster, group = Cluster)) +
+  geom_line() +
+  labs(x = "Variables", y = "Value") +
+  scale_color_manual(values = c("#000000", "#009292", "red", "#24FF24", "yellow3")) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank())+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Clusters centers (1)")
+
+# Second plot
+plot2_data <- hmodel_df_plot %>% filter(!variables %in% plot1_variables) # filter variables
+
+cl_centers_plot2 <- ggplot(plot2_data, aes(x = variables, y = Value, color = Cluster, group = Cluster)) +
+  geom_line() +
+  labs(x = "Variables", y = "Value") +
+  scale_color_manual(values = c("#000000", "#009292", "red", "#24FF24", "yellow3")) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank())+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Clusters centers (2)")
+
+# Save the plots
+ggsave("../Plots/Clusters center plot 1.png", plot = cl_centers_plot1)
+ggsave("../Plots/Clusters center plot 2.png", plot = cl_centers_plot2)
 ```
 
 ###### Different tables and plots for cluster analysis
 
-```{r}
 # Cluster 2 insights
+
+```{r}
 cl_2_insights <- df_19 %>% filter(Cluster == 2) %>% 
   select(Neighborhood, house_price_2019, n_airbnbs, n_airbnb_incr_last_4_years, mean_airbnb_price, unem_prop_2019, Post_graduate, Compulsory_educ, Incomplete_elementary, aging_index_incr, house_price_incr_last_4_years) %>% arrange(Post_graduate) %>% head(15) %>% mutate_if(is.numeric, round, digits = 4)
 cl_2_insights
 write.csv(cl_2_insights, "../Datasets - TFM/Cleaned datasets/Cluster_2_vulnerable_neighborhoods.csv", row.names = F)
+
+# plot neighborhoods in risk of gentrification
+  # store main variables affecting gentrification in this cluster
+gent_variables <- c("Neighborhood", "house_price_2019", "n_airbnbs", "n_airbnb_incr_last_4_years", "mean_airbnb_price", "unem_prop_2019", "Post_graduate", "Compulsory_educ", "Incomplete_elementary", "aging_index_incr", "house_price_incr_last_4_years")
+  # store the gentrified neighborhoods in groups
+gentrified_cl2_1 <- c("San Diego", "Puerta Bonita", "Almendrales", "Numancia", "Vista Alegre")
+gentrified_cl2_2 <- c("Buenavista", "Pueblo Nuevo", "Lucero", "Ventas", "Comillas")
+gentrified_cl2_3 <- c("Palomeras Bajas", "San Isidro", "Canillejas", "Aluche", "Opañel")
+
+  # store a dataframe for the selected variables and the centers of each cluster
+df_gentrified_centers_plot <- hmodel_df_plot %>% filter(variables %in% gent_variables)
+names(df_gentrified_centers_plot)[1] <- "Variables"
+df_gentrified_centers_plot$Variables <- factor(df_gentrified_centers_plot$Variables, levels = unique(df_gentrified_centers_plot$Variables)) # order the plot
+  # plot 1
+df_cl2_gent_neighborhoods_plot_1 <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% gentrified_cl2_1) %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% gent_variables) %>% 
+  # add cluster center
+  bind_rows(df_gentrified_centers_plot %>% filter(Cluster == "C2")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C2", "Cluster center"))
+
+df_cl2_gent_neighborhoods_plot_1$Variables <- factor(df_cl2_gent_neighborhoods_plot_1$Variables, levels = unique(df_cl2_gent_neighborhoods_plot_1$Variables))
+
+# Filter out zero or negative values
+filtered_data <- df_cl2_gent_neighborhoods_plot_1 %>%
+  filter(Value > 0)
+
+# Create a separate column for the transformed values
+filtered_data$log_value <- log10(filtered_data$Value)
+
+cl2_gent_neighborhoods_plot_1 <- ggplot(filtered_data, aes(x = Variables, y = log_value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = filtered_data %>% filter(Neighborhood != "Cluster center"), size = 0.5) +
+  geom_line(data = filtered_data %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Log Value") +
+  theme_minimal() +
+  scale_color_manual(values = c("#AED6F1", "#FF6600", "#6495ED", "#000080", "purple4", "darkviolet")) +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title = element_text(size = 12, color = "#4F4F4F"),
+        axis.text = element_text(size = 10, color = "#4F4F4F"),
+        axis.line = element_line(color = "#4F4F4F"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        legend.title = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 2 Gentrified neighborhoods (1)")
+
+cl2_gent_neighborhoods_plot_1
+
+ggsave("../Plots/Individual_cluster_analysis/Cluster_2_Gentrified_neighborhoods_1.png", plot = cl2_gent_neighborhoods_plot_1)
+
+# plot 2
+df_cl2_gent_neighborhoods_plot_2 <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% gentrified_cl2_2) %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% gent_variables) %>% 
+  # add cluster center
+  bind_rows(df_gentrified_centers_plot %>% filter(Cluster == "C2")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C2", "Cluster center"))
+
+df_cl2_gent_neighborhoods_plot_2$Variables <- factor(df_cl2_gent_neighborhoods_plot_2$Variables, levels = unique(df_cl2_gent_neighborhoods_plot_2$Variables))
+
+# Filter out zero or negative values
+filtered_data <- df_cl2_gent_neighborhoods_plot_2 %>%
+  filter(Value > 0)
+
+# Create a separate column for the transformed values
+filtered_data$log_value <- log10(filtered_data$Value)
+
+# Plot the transformed data
+cl2_gent_neighborhoods_plot_2 <- ggplot(filtered_data, aes(x = Variables, y = log_value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = filtered_data %>% filter(Neighborhood != "Cluster center"), size = 0.5) +
+  geom_line(data = filtered_data %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Log Value") +
+  theme_minimal() +
+  scale_color_manual(values = c("#AED6F1", "#FF6600", "#6495ED", "#000080", "purple4", "darkviolet")) +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title = element_text(size = 12, color = "#4F4F4F"),
+        axis.text = element_text(size = 10, color = "#4F4F4F"),
+        axis.line = element_line(color = "#4F4F4F"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        legend.title = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 2 Gentrified neighborhoods (2)")
+
+cl2_gent_neighborhoods_plot_2
+
+ggsave("../Plots/Individual_cluster_analysis/Cluster_2_Gentrified_neighborhoods_2.png", plot = cl2_gent_neighborhoods_plot_2)
+
+# plot 3
+df_cl2_gent_neighborhoods_plot_3 <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% gentrified_cl2_3) %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% gent_variables) %>% 
+  # add cluster center
+  bind_rows(df_gentrified_centers_plot %>% filter(Cluster == "C2")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C2", "Cluster center"))
+
+df_cl2_gent_neighborhoods_plot_3$Variables <- factor(df_cl2_gent_neighborhoods_plot_3$Variables, levels = unique(df_cl2_gent_neighborhoods_plot_3$Variables))
+
+# Filter out zero or negative values
+filtered_data <- df_cl2_gent_neighborhoods_plot_3 %>%
+  filter(Value > 0)
+
+# Create a separate column for the transformed values
+filtered_data$log_value <- log10(filtered_data$Value)
+
+# Plot the transformed data
+cl2_gent_neighborhoods_plot_3 <- ggplot(filtered_data, aes(x = Variables, y = log_value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = filtered_data %>% filter(Neighborhood != "Cluster center"), size = 0.5) +
+  geom_line(data = filtered_data %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Log Value") +
+  theme_minimal() +
+  scale_color_manual(values = c("#AED6F1", "#6495ED", "#FF6600", "#000080", "purple4", "darkviolet")) +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title = element_text(size = 12, color = "#4F4F4F"),
+        axis.text = element_text(size = 10, color = "#4F4F4F"),
+        axis.line = element_line(color = "#4F4F4F"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        legend.title = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 2 Gentrified neighborhoods (3)")
+
+cl2_gent_neighborhoods_plot_3
+
+ggsave("../Plots/Individual_cluster_analysis/Cluster_2_Gentrified_neighborhoods_3.png", plot = cl2_gent_neighborhoods_plot_3)
 ```
 
-```{r}
+
 # Cluster 3 insights
+
+```{r}
 cl_3_insights <- df_19 %>% filter(Cluster == 3) %>% 
   select(Neighborhood, house_price_2019, house_price_incr_last_4_years, n_airbnbs, Post_graduate, unem_prop_2019) 
   cl_3_gentrified <- cl_3_insights[c(29, 31, 16, 28, 14, 15, 13, 34, 18), ] %>%  mutate_if(is.numeric, round, digits = 4)
@@ -869,5 +1056,331 @@ cl3_postgrad_house_price_incr <- cl_3_insights %>%
   cl3_postgrad_house_price_incr
   # save plot
   ggsave("../Plots/Individual_cluster_analysis/Cluster_3_Post_graduates_Real_estate_price_increase.png", plot = cl3_postgrad_house_price_incr, width = 10, height = 8, dpi = 300)
+  
+# plot the educational level
+hmodel_df_plot3 <- hmodel %>% as.data.frame() %>% select(C3)
+hmodel_df_plot3$variables <- row.names(hmodel)
+row.names(hmodel_df_plot3) <- NULL
+hmodel_df_plot3 <- hmodel_df_plot3[11:17, ]  
+
+hmodel_df_plot3$variables <- factor(hmodel_df_plot3$variables, levels = hmodel_df_plot3$variables) # order by educational level
+
+plot_cl3_educational_level <- hmodel_df_plot3 %>% 
+  ggplot(aes(x = variables, y = C3)) + 
+  geom_col(fill = "red3") +
+  theme_minimal() + 
+  labs(x = NULL, y = NULL, title = "Cluster 3: Educational level") +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(0, 10, 0, 0)) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
+
+ggsave("../Plots/Individual_cluster_analysis/Cluster_3_Educational_level.png", plot = plot_cl3_educational_level, width = 10, height = 8, dpi = 300)
+
+# plot airbnb influence
+airbnb_variables <- c("n_airbnbs", "n_airbnb_incr_last_4_years", "mean_airbnb_price", "airbnb_price_incr_last_4_years")
+airbnb_centers_data <- hmodel_df_plot %>% filter(variables %in% airbnb_variables)# Filter data for the first plot
+
+airbnb_centers_plot <- ggplot(airbnb_centers_data, aes(x = variables, y = Value, color = Cluster, group = Cluster)) +
+  geom_line() +
+  labs(x = "Variables", y = "Value") +
+  scale_color_manual(values = c("#000000", "#009292", "red", "#24FF24", "yellow3")) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank())+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Clusters centers, Airbnb")
+
+ggsave("../Plots/Clusters center Airbnb.png", plot = airbnb_centers_plot)
+```
+
+```{r}
+# Gentrified neighborhoods
+gentrified_cl3_1 <- c("Casco Histórico de Vallecas", "Canillejas", "Portazgo", "Los Rosales", "Moscardó")
+gentrified_cl3_2 <- c("Palomeras Sureste", "San Fermín", "Casco Histórico de Barajas", "Fontarrón")
+
+  # plot 1
+df_cl3_gent_neighborhoods_plot_1 <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% gentrified_cl3_1) %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% gent_variables) %>% 
+  # add cluster center
+  bind_rows(df_gentrified_centers_plot %>% filter(Cluster == "C3")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C3", "Cluster center"))
+
+df_cl3_gent_neighborhoods_plot_1$Variables <- factor(df_cl3_gent_neighborhoods_plot_1$Variables, levels = unique(df_cl3_gent_neighborhoods_plot_1$Variables))
+
+# Filter out zero or negative values
+filtered_data <- df_cl3_gent_neighborhoods_plot_1 %>%
+  filter(Value > 0)
+
+# Create a separate column for the transformed values
+filtered_data$log_value <- log10(filtered_data$Value)
+
+cl3_gent_neighborhoods_plot_1 <- ggplot(filtered_data, aes(x = Variables, y = log_value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = filtered_data %>% filter(Neighborhood != "Cluster center"), size = 0.5) +
+  geom_line(data = filtered_data %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Log Value") +
+  theme_minimal() +
+  scale_color_manual(values = c("#FFCCCC", "#FF9999", "#00FF00", "#FF0000", "#800000", "#390993")) +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title = element_text(size = 12, color = "#4F4F4F"),
+        axis.text = element_text(size = 10, color = "#4F4F4F"),
+        axis.line = element_line(color = "#4F4F4F"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        legend.title = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 3 Gentrified neighborhoods (1)")
+
+cl3_gent_neighborhoods_plot_1
+
+ggsave("../Plots/Individual_cluster_analysis/Cluster_3_Gentrified_neighborhoods_1.png", plot = cl3_gent_neighborhoods_plot_1)
+
+# plot 2
+df_cl3_gent_neighborhoods_plot_2 <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% gentrified_cl3_2) %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% gent_variables) %>% 
+  # add cluster center
+  bind_rows(df_gentrified_centers_plot %>% filter(Cluster == "C3")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C3", "Cluster center"))
+
+df_cl3_gent_neighborhoods_plot_2$Variables <- factor(df_cl3_gent_neighborhoods_plot_2$Variables, levels = unique(df_cl3_gent_neighborhoods_plot_2$Variables))
+
+# Filter out zero or negative values
+filtered_data <- df_cl3_gent_neighborhoods_plot_2 %>%
+  filter(Value > 0)
+
+# Create a separate column for the transformed values
+filtered_data$log_value <- log10(filtered_data$Value)
+
+cl3_gent_neighborhoods_plot_2 <- ggplot(filtered_data, aes(x = Variables, y = log_value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = filtered_data %>% filter(Neighborhood != "Cluster center"), size = 0.5) +
+  geom_line(data = filtered_data %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Log Value") +
+  theme_minimal() +
+  scale_color_manual(values = c("#FFCCCC", "#00FF00", "#FF0000", "#800000", "#390993")) +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title = element_text(size = 12, color = "#4F4F4F"),
+        axis.text = element_text(size = 10, color = "#4F4F4F"),
+        axis.line = element_line(color = "#4F4F4F"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        legend.title = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 3 Gentrified neighborhoods (2)")
+
+cl3_gent_neighborhoods_plot_2
+
+ggsave("../Plots/Individual_cluster_analysis/Cluster_3_Gentrified_neighborhoods_2.png", plot = cl3_gent_neighborhoods_plot_2)
+```
+
+
+# Cluster 4 insights
+
+```{r}
+# gentrified neighborhoods
+cl_4_insights <- df_19 %>% filter(Cluster == 4) 
+cl_4_gentrified <- cl_4_insights[c(5, 12),] %>% 
+  select(Neighborhood, house_price_incr_last_4_years, unem_prop_2019, Non_literate, Incomplete_elementary, Compulsory_educ,
+                FP_or_pre_college, College_graduate, Post_graduate) %>%  
+  mutate_if(is.numeric, round, digits = 4) %>% t()
+```
+
+```{r}
+# plot neighborhoods in irsk of gentrification in Cluster 4
+df_cl4_gent_neighborhoods_plot <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% c("Los Cármenes", "San Cristóbal")) %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% sociodem_variables) %>% 
+  # add cluster center
+  bind_rows(df_sociodem_centers_plot %>% filter(Cluster == "C4")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C4", "Cluster center"))
+
+df_cl4_gent_neighborhoods_plot$Variables <- factor(df_cl4_gent_neighborhoods_plot$Variables, levels = unique(df_cl4_gent_neighborhoods_plot$Variables))
+
+cl4_gent_neighborhoods_plot <- ggplot(df_cl4_gent_neighborhoods_plot, aes(x = Variables, y = Value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = df_cl4_gent_neighborhoods_plot %>% filter(Neighborhood != "Cluster center"), size = 0.5)+
+  geom_line(data = df_cl4_gent_neighborhoods_plot %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Value") +
+    theme_minimal() +
+  scale_color_manual(values = c("red", "lightgreen", "darkgreen")) +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(), 
+          legend.title = element_blank())+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 4 Gentrified neighborhoods")
+
+cl4_gent_neighborhoods_plot
+
+ggsave("../Plots/Individual_cluster_analysis_Cluster_4_Gentrified_neighborhoods.png", plot = cl4_gent_neighborhoods_plot)
+```
+
+
+# Cluster 5 insights
+
+```{r}
+
+cl_5_insights <- df_19 %>% filter(Cluster == 5) 
+
+# wealthier neghborhoods
+cl_5_priv <- cl_5_insights[c(4, 5, 3, 18, 1),] %>% 
+  select(Neighborhood, house_price_2019, unem_prop_2019, Non_literate, Incomplete_elementary, Compulsory_educ,
+         FP_or_pre_college, College_graduate, Post_graduate) %>%  
+  mutate_if(is.numeric, round, digits = 4) %>% t()
+
+# gentrified neighborhoods
+cl_5_gentrified <- cl_5_insights[c(16, 10, 15, 11, 9),] %>% 
+  select(Neighborhood, house_price_incr_last_4_years, unem_prop_2019, Non_literate, Incomplete_elementary, Compulsory_educ,
+                FP_or_pre_college, College_graduate, Post_graduate) %>%  
+  mutate_if(is.numeric, round, digits = 4) %>% t()
+
+# centers plot, social class structure variables
+
+sociodem_variables <- c("house_price_incr_last_4_years", "unem_prop_2019", "Non_literate", "Incomplete_elementary", "Compulsory_educ",
+                "FP_or_pre_college", "College_graduate", "Post_graduate")
+df_sociodem_centers_plot <- hmodel_df_plot %>% filter(variables %in% sociodem_variables)# Filter data for the first plot
+df_sociodem_centers_plot$variables <- factor(df_sociodem_centers_plot$variables, levels = unique(df_sociodem_centers_plot$variables)) # order the plot
+
+plot_sociodem_centers <- ggplot(df_sociodem_centers_plot, aes(x = variables, y = Value, color = Cluster, group = Cluster)) +
+  geom_line() +
+  labs(x = "Variables", y = "Value") +
+  scale_color_manual(values = c("#000000", "#009292", "red", "#24FF24", "yellow3")) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank())+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Clusters centers, Socio-demographic variables")
+
+ggsave("../Plots/Clusters center sociodemog.png", plot = plot_sociodem_centers)
+
+# plot gentrified and privileged neighborhoods
+names(df_sociodem_centers_plot)[1] <- "Variables"
+## privileged
+df_cl5_privneighborhoods_plot <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% c("Valdemarín", "El Plantío", "El Goloso", "Corralejos", "Estrella"))   %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% sociodem_variables) %>% 
+  # add cluster center
+  bind_rows(df_sociodem_centers_plot %>% filter(Cluster == "C5")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C5", "Cluster center"))
+
+df_cl5_privneighborhoods_plot$Variables <- factor(df_cl5_privneighborhoods_plot$Variables, levels = unique(df_cl5_privneighborhoods_plot$Variables))
+
+cl5_privneighborhoods_plot <- ggplot(df_cl5_privneighborhoods_plot, aes(x = Variables, y = Value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = df_cl5_privneighborhoods_plot %>% filter(Neighborhood != "Cluster center"), size = 0.5)+
+  geom_line(data = df_cl5_privneighborhoods_plot %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Value") +
+    theme_minimal() +
+  scale_color_manual(values = c("blue", "#FFFF66", "#FFCC00", "goldenrod", "lightsalmon", "brown")) +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(), 
+          legend.title = element_blank())+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 5 Privileged neighborhoods")
+
+ggsave("../Plots/Individual_cluster_analysis_Cluster_5_Privileged_neighborhoods.png", plot = cl5_privneighborhoods_plot)
+
+## gentrified neighborhoods
+df_cl5_gent_neighborhoods_plot <- df_19_scaled %>% 
+  # filter neighborhoods
+  filter(Neighborhood %in% c("Amposta", "Pradolongo", "Hellín", "Entrevías", "Zofío")) %>% 
+  # pivot the variables for visualization
+  pivot_longer(cols = -Neighborhood, names_to = "Variables", values_to = "Value") %>% 
+  # filter sociodemographic variables
+  filter(Variables %in% sociodem_variables) %>% 
+  # add cluster center
+  bind_rows(df_sociodem_centers_plot %>% filter(Cluster == "C5")) %>% 
+  mutate(Neighborhood = ifelse(is.na(Neighborhood), Cluster, Neighborhood)) %>% select(-Cluster) %>% mutate(Neighborhood = str_replace_all(Neighborhood, "C5", "Cluster center"))
+
+df_cl5_gent_neighborhoods_plot$Variables <- factor(df_cl5_gent_neighborhoods_plot$Variables, levels = unique(df_cl5_gent_neighborhoods_plot$Variables))
+
+cl5_gent_neighborhoods_plot <- ggplot(df_cl5_gent_neighborhoods_plot, aes(x = Variables, y = Value, color = Neighborhood, group = Neighborhood)) +
+  geom_line(data = df_cl5_gent_neighborhoods_plot %>% filter(Neighborhood != "Cluster center"), size = 0.5)+
+  geom_line(data = df_cl5_gent_neighborhoods_plot %>% filter(Neighborhood == "Cluster center"), size = 1.1) +
+  labs(x = "Variables", y = "Value") +
+    theme_minimal() +
+  scale_color_manual(values = c("#FFFF66", "blue", "#FFCC00", "goldenrod", "lightsalmon", "brown")) +
+    theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(), 
+          legend.title = element_blank())+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Cluster 5 Gentrified neighborhoods")
+
+ggsave("../Plots/Individual_cluster_analysis_Cluster_5_Gentrified_neighborhoods.png", plot = cl5_gent_neighborhoods_plot)
+```
+
+# Gentrified neighborhoods map
+
+```{r}
+gentrified_neighborhoods <- c("Embajadores", gentrified_cl2_1, gentrified_cl2_2, gentrified_cl2_3, gentrified_cl3_1, gentrified_cl3_2, "Los Cármenes", "San Cristóbal", "Amposta", "Pradolongo", "Hellín", "Entrevías", "Zofío")
+  
+  
+  names(df_hclusters_19)[1] <- "DESBDT"
+mapb_gentrified <- mapb %>% left_join(df_hclusters_19, by = "DESBDT") %>% drop_na() %>% filter(DESBDT %in% gentrified_neighborhoods)
+
+factpal <- colorFactor(c( # mostly, from ColorBlindness package
+  "#000000", # 1
+  "#009292", # 2
+  "#006DDB", # 3
+  "red", # 4
+  "#24FF24", # 5
+  "yellow" # 6
+  ), as.factor(mapb_gentrified$Cluster))	# define color palette
+
+# leaflet map 
+gent_map <- leaflet(mapb_gentrified) %>% 
+  addTiles() %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_gentrified$Cluster))) %>% 
+  addLegend("bottomright", 
+            pal = factpal, 
+            values = as.factor(mapb_gentrified$Cluster),
+            title = "Cluster", 
+            labFormat = labelFormat())
+gent_map
+
+# Save the map as an HTML file
+mapDir <- "../Plots/Interactive_maps"
+map_file <- file.path(mapDir, "Interactive_Madrid_Gentrified_neighborhoods_Map.html")
+saveWidget(gent_map, map_file , selfcontained = FALSE)
 ```
 
