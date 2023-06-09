@@ -28,6 +28,8 @@ library(leaflet)
 library(colorBlindness)
 library(devtools)
 library(htmlwidgets)
+library(caret)
+library(nnet)
 ```
 
 ## Data harvesting: creation of the dataset 
@@ -760,14 +762,14 @@ factpal <- colorFactor(c( # mostly, from ColorBlindness package
   "red", # 4
   "#24FF24", # 5
   "yellow" # 6
-  ), as.factor(mapb_kn$Cluster))	# define color palette
+  ), base::as.factor(mapb_kn$Cluster))	# define color palette
 
 kn_map <- leaflet(mapb_kn) %>% 
   addTiles() %>% 
-  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_kn$Cluster))) %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(base::as.factor(mapb_kn$Cluster))) %>% 
   addLegend("bottomright", 
             pal = factpal, 
-            values = as.factor(mapb_kn$Cluster),
+            values = base::as.factor(mapb_kn$Cluster),
             title = "Cluster", 
             labFormat = labelFormat())
 kn_map
@@ -793,15 +795,15 @@ factpal <- colorFactor(c( # mostly, from ColorBlindness package
   "red", # 4
   "#24FF24", # 5
   "yellow" # 6
-  ), as.factor(mapb_hc$Cluster))	# define color palette
+  ), base::as.factor(mapb_hc$Cluster))	# define color palette
 
 # leaflet map 
 hc_map <- leaflet(mapb_hc) %>% 
   addTiles() %>% 
-  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_hc$Cluster))) %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(base::as.factor(mapb_hc$Cluster))) %>% 
   addLegend("bottomright", 
             pal = factpal, 
-            values = as.factor(mapb_hc$Cluster),
+            values = base::as.factor(mapb_hc$Cluster),
             title = "Cluster", 
             labFormat = labelFormat())
 hc_map
@@ -1365,15 +1367,15 @@ factpal <- colorFactor(c( # mostly, from ColorBlindness package
   "red", # 4
   "#24FF24", # 5
   "yellow" # 6
-  ), as.factor(mapb_gentrified$Cluster))	# define color palette
+  ), base::as.factor(mapb_gentrified$Cluster))	# define color palette
 
 # leaflet map 
 gent_map <- leaflet(mapb_gentrified) %>% 
   addTiles() %>% 
-  addPolygons(weight = 3, opacity = 1, color = ~factpal(as.factor(mapb_gentrified$Cluster))) %>% 
+  addPolygons(weight = 3, opacity = 1, color = ~factpal(base::as.factor(mapb_gentrified$Cluster))) %>% 
   addLegend("bottomright", 
             pal = factpal, 
-            values = as.factor(mapb_gentrified$Cluster),
+            values = base::as.factor(mapb_gentrified$Cluster),
             title = "Cluster", 
             labFormat = labelFormat())
 gent_map
@@ -1383,4 +1385,64 @@ mapDir <- "../Plots/Interactive_maps"
 map_file <- file.path(mapDir, "Interactive_Madrid_Gentrified_neighborhoods_Map.html")
 saveWidget(gent_map, map_file , selfcontained = FALSE)
 ```
+
+###### Regression model: most explanatory variables:
+
+```{r}
+# merge the scaled numerical dataframe with the number of cluster
+names(df_hclusters_19)[1] <- "Neighborhood"
+df_19_num_cluster <- df_19_scaled %>% 
+  full_join(df_hclusters_19, by = "Neighborhood") %>% 
+  filter(Cluster != 6) %>% 
+  select(-Neighborhood) 
+
+```
+
+```{r}
+# multinomial model
+df_19_num_cluster$Cluster <- factor(df_19_num_cluster$Cluster, levels = c(1:5))
+
+# Training the multinomial model
+mn_model <- Cluster ~ .
+mn_tune <- multinom(gb_model, data = df_19_num_cluster)
+# Checking the model
+importance_values <- abs(coef(mn_tune))
+# importance_df <- data.frame(Variables = colnames(importance_values), Importance = importance_values)
+importance_df <- as.data.frame(importance_values) 
+importance_df$Cluster <- row.names(importance_df)
+importance_df <- importance_df %>% gather(key = Variables, value = Importance, -Cluster)
+# adequate for plotting
+importance_df_sum <- importance_df %>% group_by(Variables) %>% summarise(
+  Importance = round(mean(Importance), digits = 2)
+) %>% ungroup() 
+# sort
+importance_df_sum$Variables <- factor(importance_df_sum$Variables, levels = unique(importance_df_sum$Variables)[order(importance_df_sum$Importance, decreasing = T)])
+
+
+```
+
+```{r}
+# plot important variables
+imp_var_plot <- ggplot(importance_df_sum, aes(x = Variables, y = Importance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Variable Importance",
+       x = "Variables",
+       y = "Importance")+ 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 12, color = "#4F4F4F"),
+          axis.text = element_text(size = 10, color = "#4F4F4F"),
+          axis.line = element_line(color = "#4F4F4F"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(), 
+          legend.title = element_blank())+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1)) +
+  labs(x = NULL, y = NULL, title = "Variable Relevance in Clustering Analysis") 
+
+imp_var_plot
+
+ggsave("../Plots/Variable_relevance.png", plot = imp_var_plot, width = 10, height = 8, dpi = 300)
+```
+
+
 
